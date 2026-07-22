@@ -1,0 +1,329 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Mô Phỏng Đồng Bộ Hóa - MiMi Lê{% endblock %}
+{% block body_class %}synchronization-page{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 os-page">
+    <div class="row mb-4 page-hero align-items-center">
+        <div class="col-md-8">
+            <div class="section-kicker mb-2">Synchronization</div>
+            <h2 class="mb-2" style="color: var(--brand-dark);">Mô Phỏng Đồng Bộ Hóa</h2>
+            <p class="text-muted mb-0">Producer-Consumer, semaphore và vùng găng trên một vùng đệm hữu hạn.</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'app:simulation' %}" class="btn btn-outline-secondary btn-sm">← Quay lại</a>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">Khái niệm chính</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="p-3 rounded border h-100 sync-soft">
+                                <h6>Semaphore</h6>
+                                <p class="small text-muted mb-0">Dùng để đếm tài nguyên và kiểm soát truy cập.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded border h-100 sync-soft">
+                                <h6>Mutex</h6>
+                                <p class="small text-muted mb-0">Bảo vệ vùng găng, chỉ cho 1 tiến trình vào một lúc.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded border h-100 sync-soft">
+                                <h6>Bounded Buffer</h6>
+                                <p class="small text-muted mb-0">Mô hình producer-consumer với sức chứa giới hạn.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 p-3 rounded sync-soft">
+                        <strong>Chuỗi thao tác:</strong> {{ sequence|join:' ' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">Thiết lập mô phỏng</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-4">
+                            <label class="form-label small">Buffer</label>
+                            <input type="number" name="buffer_size" min="1" max="10" class="form-control" value="{{ buffer_size }}">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Producer</label>
+                            <input type="number" name="producer_count" min="1" max="10" class="form-control" value="{{ producer_count }}">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Consumer</label>
+                            <input type="number" name="consumer_count" min="1" max="10" class="form-control" value="{{ consumer_count }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Số bước</label>
+                            <input type="number" name="step_count" min="6" max="40" class="form-control" value="{{ step_count }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Pattern</label>
+                            <select name="pattern" class="form-select">
+                                <option value="auto" {% if pattern == 'auto' %}selected{% endif %}>Tự động ngẫu nhiên</option>
+                                <option value="producer_first" {% if pattern == 'producer_first' %}selected{% endif %}>Producer trước</option>
+                                <option value="consumer_first" {% if pattern == 'consumer_first' %}selected{% endif %}>Consumer trước</option>
+                                <option value="manual" {% if pattern == 'manual' %}selected{% endif %}>Nhập tay</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Chuỗi thao tác (P/C) cho nhập tay</label>
+                            <textarea name="sequence" rows="3" class="form-control" placeholder="P, P, C, P, C"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Seed</label>
+                            <input type="text" name="seed" class="form-control" value="{{ seed }}">
+                        </div>
+                        <hr class="my-1">
+                        <div class="col-12">
+                            <div class="text-muted small mb-1">Cấp phát bộ nhớ cho tiến trình</div>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Tổng RAM (MB)</label>
+                            <input type="number" name="total_ram" min="1" class="form-control" value="{{ total_ram }}">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">RAM/Producer (MB)</label>
+                            <input type="number" name="mem_producer" min="1" class="form-control" value="{{ mem_producer }}">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">RAM/Consumer (MB)</label>
+                            <input type="number" name="mem_consumer" min="1" class="form-control" value="{{ mem_consumer }}">
+                        </div>
+                        <div class="col-12 d-grid">
+                            <button type="submit" class="btn btn-primary">Chạy mô phỏng</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Bị chặn bởi đầy buffer</div>
+                    <h3 class="mb-0">{{ result.blocked_producers }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Bị chặn bởi buffer rỗng</div>
+                    <h3 class="mb-0">{{ result.blocked_consumers }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Số item cuối cùng</div>
+                    <h3 class="mb-0">{{ result.final_buffer|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Trạng thái mutex</div>
+                    <h3 class="mb-0">{{ result.mutex }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Bị chặn vì thiếu vùng nhớ</div>
+                    <h3 class="mb-0">{{ result.blocked_by_memory }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">RAM trống hiện tại / Tổng RAM</div>
+                    <h3 class="mb-0">{{ result.ram_free }} / {{ result.total_ram }} MB</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">RAM cấp mỗi lượt (P / C)</div>
+                    <h3 class="mb-0">{{ result.mem_producer }} / {{ result.mem_consumer }} MB</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Buffer theo thời gian</h5>
+                    <span class="badge bg-primary">Capacity {{ buffer_size }}</span>
+                </div>
+                <div class="card-body">
+                    <div style="height: 240px;">
+                        <canvas id="bufferChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">Trạng thái cuối</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="text-muted small">Buffer hiện tại</div>
+                        {% if result.final_buffer %}
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for item in result.final_buffer %}
+                                <span class="badge bg-light text-dark border">{{ item }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-muted">Buffer trống</div>
+                        {% endif %}
+                    </div>
+                    <div class="small text-muted">
+                        Semaphore: <strong>empty={{ result.empty }}</strong>, 
+                        <strong>full={{ result.full }}</strong>, 
+                        <strong>mutex={{ result.mutex }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">Timeline đồng bộ hóa</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Bước</th>
+                                    <th>Tiến trình</th>
+                                    <th>Hành động</th>
+                                    <th>Kết quả</th>
+                                    <th>Buffer sau bước</th>
+                                    <th>empty</th>
+                                    <th>full</th>
+                                    <th>mutex</th>
+                                    <th>RAM cấp / còn</th>
+                                    <th style="min-width: 380px;">Mô tả chi tiết (lập lịch → bộ nhớ → đồng bộ)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in result.timeline %}
+                                <tr>
+                                    <td>{{ row.step }}</td>
+                                    <td>{{ row.actor }}</td>
+                                    <td>{{ row.action }}</td>
+                                    <td>
+                                        {% if row.result == 'produced' %}
+                                            <span class="badge bg-success">Produced</span>
+                                        {% elif row.result == 'consumed' %}
+                                            <span class="badge bg-primary">Consumed</span>
+                                        {% elif row.block_reason == 'memory' %}
+                                            <span class="badge bg-danger">Blocked (RAM)</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Blocked (buffer)</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% for item in row.buffer %}
+                                            <span class="badge bg-light text-dark border me-1">{{ item }}</span>
+                                        {% empty %}
+                                            <span class="text-muted">-</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>{{ row.empty }}</td>
+                                    <td>{{ row.full }}</td>
+                                    <td>{{ row.mutex }}</td>
+                                    <td class="small">{{ row.ram_used }}MB / {{ row.ram_free }}MB</td>
+                                    <td class="small text-muted">{{ row.description }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    const syncLabels = JSON.parse('{{ sync_json|escapejs }}').map(item => `B${item.step}`);
+    const occupancy = JSON.parse('{{ occupancy_json|escapejs }}');
+    const ramFree = JSON.parse('{{ ram_json|escapejs }}');
+    new Chart(document.getElementById('bufferChart'), {
+        type: 'line',
+        data: {
+            labels: syncLabels,
+            datasets: [
+                {
+                    label: 'Số phần tử trong buffer',
+                    data: occupancy,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13,110,253,0.12)',
+                    tension: 0.25,
+                    fill: true,
+                    pointRadius: 4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'RAM trống (MB)',
+                    data: ramFree,
+                    borderColor: '#dc3545',
+                    backgroundColor: 'rgba(220,53,69,0.08)',
+                    tension: 0.25,
+                    fill: false,
+                    pointRadius: 3,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 }, position: 'left', title: { display: true, text: 'Buffer' } },
+                y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'RAM (MB)' } }
+            }
+        }
+    });
+</script>
+{% endblock %}

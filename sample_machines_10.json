@@ -1,0 +1,105 @@
+{
+    "type": "machines",
+    "machines": [
+        {
+            "name": "PC01",
+            "machine_type": "thuong",
+            "status": "trong",
+            "hourly_rate": 10000,
+            "has_headset": true,
+            "has_account": false,
+            "ram_gb": 8,
+            "note": "Máy thường - khu A"
+        },
+        {
+            "name": "PC02",
+            "machine_type": "thuong",
+            "status": "trong",
+            "hourly_rate": 10000,
+            "has_headset": true,
+            "has_account": false,
+            "ram_gb": 8,
+            "note": "Máy thường - khu A"
+        },
+        {
+            "name": "PC03",
+            "machine_type": "thuong",
+            "status": "trong",
+            "hourly_rate": 10000,
+            "has_headset": true,
+            "has_account": true,
+            "ram_gb": 16,
+            "note": "Máy thường - khu A"
+        },
+        {
+            "name": "PC04",
+            "machine_type": "thuong",
+            "status": "trong",
+            "hourly_rate": 10000,
+            "has_headset": true,
+            "has_account": true,
+            "ram_gb": 16,
+            "note": "Máy thường - khu A"
+        },
+        {
+            "name": "PC05",
+            "machine_type": "gaming",
+            "status": "trong",
+            "hourly_rate": 15000,
+            "has_headset": true,
+            "has_account": true,
+            "ram_gb": 32,
+            "note": "Máy gaming - khu B"
+        },
+        {
+            "name": "PC06",
+            "machine_type": "gaming",
+            "status": "trong",
+            "hourly_rate": 15000,
+            "has_headset": true,
+            "has_account": true,
+            "ram_gb": 32,
+            "note": "Máy gaming - khu B"
+        },
+        {
+            "name": "PC07",
+            "machine_type": "gaming",
+            "status": "trong",
+            "hourly_rate": 15000,
+            "has_headset": true,
+            "has_account": true,
+            "ram_gb": 32,
+            "note": "Máy gaming - khu B"
+        },
+        {
+            "name": "PC08",
+            "machine_type": "vip",
+            "status": "trong",
+            "hourly_rate": 20000,
+            "has_headset": true,
+            "has_account": true,
+            "ram_gb": 64,
+            "note": "Phòng VIP - khu C"
+        },
+        {
+            "name": "PC09",
+            "machine_type": "vip",
+            "status": "trong",
+            "hourly_rate": 20000,
+            "has_headset": true,
+            "has_account": true,
+            "ram_gb": 64,
+            "note": "Phòng VIP - khu C"
+        },
+        {
+            "name": "PC10",
+            "machine_type": "vip",
+            "status": "trong",
+            "hourly_rate": 20000,
+            "has_headset": true,
+            "has_account": true,
+            "ram_gb": 64,
+            "note": "Phòng VIP - khu C"
+        }
+    ]
+}

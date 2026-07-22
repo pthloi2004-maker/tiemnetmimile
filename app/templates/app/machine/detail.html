@@ -1,0 +1,96 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Máy {{ machine.name }} - MiMi Lê{% endblock %}
+{% block body_class %}machine-page{% endblock body_class %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2>🖥️ Máy {{ machine.name }}</h2>
+            <p class="text-muted">Thông tin cấu hình, trạng thái và phiên gần nhất của máy.</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'app:machine_list' %}" class="btn btn-outline-secondary">Quay lại máy</a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            {% if machine.image %}
+            <div class="mb-4 text-center">
+                <img src="{{ machine.image.url }}" alt="{{ machine.name }}" class="img-fluid rounded" style="max-height: 320px; object-fit: cover; width: 100%;">
+            </div>
+            {% endif %}
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Tên</dt>
+                <dd class="col-sm-9">{{ machine.name }}</dd>
+
+                <dt class="col-sm-3">Loại</dt>
+                <dd class="col-sm-9">{{ machine.get_machine_type_display }}</dd>
+
+                <dt class="col-sm-3">Trạng thái</dt>
+                <dd class="col-sm-9">{{ machine.get_status_display }}</dd>
+
+                <dt class="col-sm-3">Giá giờ</dt>
+                <dd class="col-sm-9">{{ machine.hourly_rate|floatformat:0 }}₫</dd>
+
+                <dt class="col-sm-3">Headset</dt>
+                <dd class="col-sm-9">{{ machine.has_headset|yesno:"Có,Không" }}</dd>
+
+                <dt class="col-sm-3">Tài khoản</dt>
+                <dd class="col-sm-9">{{ machine.has_account|yesno:"Có,Không" }}</dd>
+
+                <dt class="col-sm-3">RAM</dt>
+                <dd class="col-sm-9">{{ machine.ram_gb }} GB</dd>
+
+                <dt class="col-sm-3">Ghi chú</dt>
+                <dd class="col-sm-9">{{ machine.note|default:'Không có' }}</dd>
+            </dl>
+        </div>
+        <div class="card-footer bg-white border-top text-end">
+            <a href="{% url 'app:machine_edit' machine.id %}" class="btn btn-sm btn-outline-primary me-2">Chỉnh sửa máy</a>
+            <a href="{% url 'app:machine_toggle_lock' machine.id %}" class="btn btn-sm btn-outline-warning">
+                {% if machine.is_locked %}Mở khóa máy{% else %}Khóa máy{% endif %}
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0">Phiên gần nhất</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-sm mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Khách</th>
+                            <th>Game</th>
+                            <th>Bắt đầu</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in sessions %}
+                        <tr>
+                            <td>{{ session.id }}</td>
+                            <td>{{ session.get_customer_name }}</td>
+                            <td>{{ session.game_name|default:'-' }}</td>
+                            <td>{{ session.start_time|date:'d/m H:i' }}</td>
+                            <td>{{ session.get_status_display }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-3">Chưa có phiên nào.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

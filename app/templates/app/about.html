@@ -1,0 +1,115 @@
+{% extends "app/base.html" %}
+{% load static %}
+
+{% block main_container %}
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h1 class="fw-bold mb-4" style="color: #c5a059; font-size: 3rem;">GIỚI THIỆU DỰ ÁN</h1>
+        <p class="lead" style="max-width: 800px; margin: 0 auto; line-height: 1.8;">
+            Tôi là sinh viên đam mê công nghệ, hiện đang xây dựng và phát triển dự án 
+            <strong style="color: #c5a059;">NHATPHAT</strong>. 
+            Dự án này là tâm huyết của tôi trong việc hoàn thiện hệ thống quản lý 
+            quán net thông minh trên nền tảng Django.
+        </p>
+    </div>
+
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-5">
+            <div class="card h-100 border-0 shadow-sm text-center" style="border-radius: 20px; transition: transform 0.3s;">
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center" 
+                             style="width: 140px; height: 140px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="fas fa-user-tie" style="font-size: 4rem; color: white;"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold mb-2" style="color: #333;">Phan Nhật Phát</h3>
+                    <p class="text-muted mb-3" style="font-size: 1.1rem;">Người sáng lập & Lập trình viên chính</p>
+                    <span class="badge" style="background-color: #c5a059; padding: 10px 20px; font-size: 0.9rem;">
+                        DEVELOPER
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm" style="border-radius: 20px; background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);">
+        <div class="card-body p-5 text-center">
+            <i class="fas fa-heart mb-3" style="font-size: 3rem; color: #c5a059;"></i>
+            <h3 class="fw-bold mb-3" style="color: #333;">Lời Cảm Ơn</h3>
+            <p class="lead mb-0" style="max-width: 700px; margin: 0 auto; color: #555;">
+               XIN CẢM ƠN BẠN ĐÃ GHÉ THĂM.
+            </p>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-md-12">
+            <div class="card border-0 shadow-sm" style="border-radius: 20px;">
+                <div class="card-body p-5">
+                    <h3 class="fw-bold mb-4 text-center" style="color: #c5a059;">
+                        <i class="fas fa-gem me-2"></i>Về Dự Án NHATPHAT
+                    </h3>
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-check-circle" style="font-size: 1.5rem; color: #c5a059;"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h5 class="fw-bold mb-2">Công nghệ</h5>
+                                    <p class="text-muted mb-0">Django Framework, Python, SQLite, Bootstrap 5</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-check-circle" style="font-size: 1.5rem; color: #c5a059;"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h5 class="fw-bold mb-2">Tính năng</h5>
+                                    <p class="text-muted mb-0">Quản lý sản phẩm, Giỏ hàng, Thanh toán, Trang Admin</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-check-circle" style="font-size: 1.5rem; color: #c5a059;"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h5 class="fw-bold mb-2">Mục tiêu</h5>
+                                    <p class="text-muted mb-0">Xây dựng hệ thống quản lý quán net thông minh</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-check-circle" style="font-size: 1.5rem; color: #c5a059;"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h5 class="fw-bold mb-2">Thời gian</h5>
+                                    <p class="text-muted mb-0">Thực hiện và hoàn thiện: 2025 - 2026</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15) !important;
+    }
+    
+    .lead {
+        font-size: 1.1rem;
+    }
+</style>
+{% endblock main_container %}

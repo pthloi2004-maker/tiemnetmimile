@@ -1,0 +1,120 @@
+{% extends "app/base.html" %}
+{% load static %}
+
+{% block main_container %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-lg text-center" style="border-radius: 20px;">
+                <div class="card-body p-5">
+                    <!-- Icon thành công -->
+                    <div class="mb-4">
+                        <div class="success-animation">
+                            <i class="fas fa-check-circle" style="font-size: 5rem; color: #28a745;"></i>
+                        </div>
+                    </div>
+
+                    <h2 class="fw-bold mb-3" style="color: #28a745;">ĐẶT HÀNG THÀNH CÔNG!</h2>
+                    <p class="text-muted mb-4">Cảm ơn bạn đã tin tưởng và mua hàng tại N1 Jewelry</p>
+
+                    <!-- Thông tin đơn hàng -->
+                    <div class="order-info bg-light p-4 rounded-3 mb-4 text-start">
+                        <h5 class="fw-bold mb-3" style="color: #c5a059;">
+                            <i class="fas fa-receipt me-2"></i>Thông tin đơn hàng
+                        </h5>
+                        
+                        <div class="row mb-2">
+                            <div class="col-5 text-muted">Mã đơn hàng:</div>
+                            <div class="col-7 fw-bold">#{{ order.id }}</div>
+                        </div>
+                        
+                        <div class="row mb-2">
+                            <div class="col-5 text-muted">Người nhận:</div>
+                            <div class="col-7 fw-bold">{{ order.last_name }} {{ order.first_name }}</div>
+                        </div>
+                        
+                        <div class="row mb-2">
+                            <div class="col-5 text-muted">Email:</div>
+                            <div class="col-7">{{ order.email }}</div>
+                        </div>
+                        
+                        <div class="row mb-2">
+                            <div class="col-5 text-muted">Số điện thoại:</div>
+                            <div class="col-7">{{ order.phone }}</div>
+                        </div>
+                        
+                        <div class="row mb-2">
+                            <div class="col-5 text-muted">Địa chỉ:</div>
+                            <div class="col-7">{{ order.address }}</div>
+                        </div>
+                        
+                        <hr class="my-3">
+                        
+                        <div class="row">
+                            <div class="col-5 text-muted">Tổng tiền:</div>
+                            <div class="col-7 fw-bold fs-5" style="color: #c5a059;">
+                                {{ order.total_price|floatformat:0 }} ₫
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Danh sách sản phẩm -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3 text-start">Sản phẩm đã đặt:</h6>
+                        {% for item in order.items.all %}
+                        <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
+                            {% if item.product.image %}
+                            <img src="{{ item.product.image.url }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+                            {% else %}
+                            <div style="width: 60px; height: 60px; background: #e0e0e0; border-radius: 8px;"></div>
+                            {% endif %}
+                            
+                            <div class="ms-3 flex-grow-1 text-start">
+                                <p class="mb-1 fw-bold">{{ item.product.name }}</p>
+                                <p class="mb-0 text-muted small">Số lượng: {{ item.quantity }}</p>
+                            </div>
+                            
+                            <span class="fw-bold" style="color: #c5a059;">
+                                {{ item.get_cost|floatformat:0 }} ₫
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Thông báo -->
+                    <div class="alert alert-info border-0 mb-4" style="border-radius: 12px;">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Chúng tôi sẽ liên hệ với bạn trong vòng <strong>24 giờ</strong> để xác nhận đơn hàng.
+                    </div>
+
+                    <!-- Các nút hành động -->
+                    <div class="d-flex gap-3 justify-content-center">
+                        <a href="{% url 'app:home' %}" class="btn btn-outline-dark px-4 py-2" style="border-radius: 8px;">
+                            <i class="fas fa-home me-2"></i>Về trang chủ
+                        </a>
+                        <a href="{% url 'app:product_list' %}" class="btn btn-dark px-4 py-2" style="border-radius: 8px; background-color: #c5a059; border: none;">
+                            <i class="fas fa-shopping-bag me-2"></i>Tiếp tục mua sắm
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes scaleIn {
+        0% { transform: scale(0); opacity: 0; }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .success-animation i {
+        animation: scaleIn 0.6s ease-out;
+    }
+    
+    .order-info {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+</style>
+{% endblock main_container %}

@@ -1,0 +1,353 @@
+{% extends 'app/base.html' %}
+
+{% block title %}So sánh Banker vs DBDAA - MiMi Lê{% endblock %}
+{% block body_class %}compare-page{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="page-hero mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-lg-8">
+                <span class="section-kicker"><i class="fa-solid fa-scale-balanced"></i>So sánh thuật toán</span>
+                <h1 class="hero-title mt-2">Banker vs DBDAA vs Q-Learning</h1>
+                <p class="hero-subtitle">So sánh chi tiết giữa Banker, DBDAA và Q-Learning về hiệu suất và tính năng.</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <a href="{% url 'app:banker_simulation' %}" class="btn btn-outline-primary btn-sm me-2">Banker</a>
+                <a href="{% url 'app:dbdaa_simulation' %}" class="btn btn-outline-primary btn-sm me-2">DBDAA</a>
+                <a href="{% url 'app:q_learning_simulation' %}" class="btn btn-outline-primary btn-sm me-2">Q-Learning</a>
+                <a href="{% url 'app:dashboard' %}" class="btn btn-outline-secondary btn-sm">← Dashboard</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Chọn kịch bản</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-12">
+                            <select name="scenario" class="form-select">
+                                <option value="safe_case" {% if scenario == 'safe_case' %}selected{% endif %}>Case an toàn</option>
+                                <option value="unsafe_case" {% if scenario == 'unsafe_case' %}selected{% endif %}>Case không an toàn</option>
+                                <option value="deadlock_case" {% if scenario == 'deadlock_case' %}selected{% endif %}>Case deadlock</option>
+                                <option value="file" {% if scenario == 'file' %}selected{% endif %}>Nhập từ file JSON</option>
+                            </select>
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary w-100">So sánh</button>
+                            <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#uploadModal" title="Nhập từ file JSON">📤</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Kết quả so sánh - {{ scenario_label }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="soft-panel p-3 text-center">
+                                <div class="display-6 fw-bold {% if comparison.banker_safe %}text-success{% else %}text-danger{% endif %}">
+                                    {% if comparison.banker_safe %}✓ An toàn{% else %}✗ Không an toàn{% endif %}
+                                </div>
+                                <div class="small text-muted">Banker Truyền thống</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="soft-panel p-3 text-center">
+                                <div class="display-6 fw-bold {% if comparison.dbdaa_safe %}text-success{% else %}text-danger{% endif %}">
+                                    {% if comparison.dbdaa_safe %}✓ An toàn{% else %}✗ Không an toàn{% endif %}
+                                </div>
+                                <div class="small text-muted">DBDAA</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="section-card">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Bảng so sánh chi tiết</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Đặc điểm</th>
+                                    <th>Banker Truyền thống</th>
+                                    <th>DBDAA</th>
+                                    <th>Q-Learning</th>
+                                    <th>Ưu điểm</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Độ phức tạp</strong></td>
+                                    <td class="text-danger">O(n²d)</td>
+                                    <td class="text-success">O(nd)</td>
+                                    <td class="text-warning">O(episodes × n)</td>
+                                    <td class="text-success">DBDAA</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sắp xếp tiến trình</strong></td>
+                                    <td class="text-muted">Không</td>
+                                    <td class="text-success">SRQ (Sorted Ready Queue)</td>
+                                    <td class="text-muted">Không (học)</td>
+                                    <td class="text-success">DBDAA</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Kiểm tra nhanh</strong></td>
+                                    <td class="text-muted">Không</td>
+                                    <td class="text-success">Fast-track Check</td>
+                                    <td class="text-muted">Không (học)</td>
+                                    <td class="text-success">DBDAA</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Danh sách chờ</strong></td>
+                                    <td class="text-muted">Không</td>
+                                    <td class="text-success">Primary Unsafe Sequence</td>
+                                    <td class="text-muted">Không (học)</td>
+                                    <td class="text-success">DBDAA</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tính động</strong></td>
+                                    <td class="text-warning">Giới hạn</td>
+                                    <td class="text-success">Hoàn toàn động</td>
+                                    <td class="text-success">Tự thích nghi (học)</td>
+                                    <td class="text-success">Q-Learning</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Học máy</strong></td>
+                                    <td class="text-muted">Không</td>
+                                    <td class="text-muted">Không</td>
+                                    <td class="text-success">Có (Reinforcement Learning)</td>
+                                    <td class="text-success">Q-Learning</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Số phép so sánh</strong></td>
+                                    <td class="text-danger">{{ comparison.banker_comparisons }}</td>
+                                    <td class="text-success">{{ comparison.dbdaa_comparisons }}</td>
+                                    <td class="text-muted">Phụ thuộc episodes</td>
+                                    <td class="text-success">DBDAA</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Fast-track skips</strong></td>
+                                    <td class="text-muted">0</td>
+                                    <td class="text-success">{{ comparison.dbdaa_fast_track_skips }}</td>
+                                    <td class="text-muted">Không áp dụng</td>
+                                    <td class="text-success">DBDAA</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>SRQ Reorderings</strong></td>
+                                    <td class="text-muted">0</td>
+                                    <td class="text-success">{{ comparison.dbdaa_srq_reorderings }}</td>
+                                    <td class="text-muted">Không áp dụng</td>
+                                    <td class="text-success">DBDAA</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Thứ tự an toàn - Banker</h5>
+                </div>
+                <div class="card-body">
+                    {% if comparison.banker_sequence %}
+                        <div class="alert {% if comparison.banker_safe %}alert-success{% else %}alert-danger{% endif %}">
+                            <strong>Thứ tự:</strong>
+                            {% for i in comparison.banker_sequence %}
+                                P{{ i }}{% if not forloop.last %} → {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">Không tìm thấy thứ tự an toàn</div>
+                    {% endif %}
+                    
+                    <h6 class="mt-3 mb-2">Chi tiết các bước:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Bước</th>
+                                    <th>Phiên</th>
+                                    <th>Need</th>
+                                    <th>Work trước</th>
+                                    <th>Work sau</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for step in comparison.banker_trace %}
+                                <tr>
+                                    <td>{{ step.step }}</td>
+                                    <td>P{{ step.proc_index }}</td>
+                                    <td>[{{ step.need|join:", " }}]</td>
+                                    <td>[{{ step.work_before|join:", " }}]</td>
+                                    <td>[{{ step.work_after|join:", " }}]</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="5" class="text-center text-muted">Không có dữ liệu</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Thứ tự an toàn - DBDAA</h5>
+                </div>
+                <div class="card-body">
+                    {% if comparison.dbdaa_sequence %}
+                        <div class="alert {% if comparison.dbdaa_safe %}alert-success{% else %}alert-danger{% endif %}">
+                            <strong>Thứ tự:</strong>
+                            {% for i in comparison.dbdaa_sequence %}
+                                P{{ i }}{% if not forloop.last %} → {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">Không tìm thấy thứ tự an toàn</div>
+                    {% endif %}
+                    
+                    {% if comparison.dbdaa_primary_unsafe %}
+                        <div class="alert alert-info mb-2">
+                            <strong>Primary Unsafe:</strong> {{ comparison.dbdaa_primary_unsafe|join:", " }}
+                        </div>
+                    {% endif %}
+                    
+                    <h6 class="mt-3 mb-2">Chi tiết các bước (với SRQ):</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Bước</th>
+                                    <th>Phiên</th>
+                                    <th>Max_Need</th>
+                                    <th>Min_A</th>
+                                    <th>Fast-track</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for step in comparison.dbdaa_trace %}
+                                <tr>
+                                    <td>{{ step.step }}</td>
+                                    <td>{{ step.proc_name }}</td>
+                                    <td>{{ step.max_need }}</td>
+                                    <td>{{ step.min_a }}</td>
+                                    <td><span class="badge bg-success">{{ step.fast_track }}</span></td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="5" class="text-center text-muted">Không có dữ liệu</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="section-card">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Biểu đồ so sánh hiệu suất</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Số phép so sánh</h6>
+                            <div class="progress mb-2" style="height: 30px;">
+                                <div class="progress-bar bg-danger" role="progressbar" style="width: 100%" aria-valuenow="{{ comparison.banker_comparisons }}" aria-valuemin="0" aria-valuemax="{{ comparison.banker_comparisons }}">
+                                    Banker: {{ comparison.banker_comparisons }}
+                                </div>
+                            </div>
+                            <div class="progress" style="height: 30px;">
+                                {% widthratio comparison.dbdaa_comparisons comparison.banker_comparisons 100 as dbdaa_percent %}
+                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ dbdaa_percent }}%" aria-valuenow="{{ comparison.dbdaa_comparisons }}" aria-valuemin="0" aria-valuemax="{{ comparison.banker_comparisons }}">
+                                    DBDAA: {{ comparison.dbdaa_comparisons }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Tỷ lệ cải tiến</h6>
+                            <div class="text-center">
+                                <div class="display-4 fw-bold text-success">{{ comparison.improvement_ratio }}x</div>
+                                <div class="text-muted">DBDAA nhanh hơn Banker</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="section-card">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Giải thích kỹ thuật</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="soft-panel p-3 h-100">
+                                <h6 class="text-danger mb-2">Banker Truyền thống</h6>
+                                <ul class="small mb-0">
+                                    <li>Độ phức tạp: O(n²d) với n tiến trình và d tài nguyên</li>
+                                    <li>Kiểm tra tất cả các cặp tiến trình với nhau</li>
+                                    <li>Không có cơ chế sắp xếp hay lọc</li>
+                                    <li>Phù hợp hệ thống nhỏ, tĩnh</li>
+                                    <li>Khó mở rộng cho hệ thống lớn</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="soft-panel p-3 h-100">
+                                <h6 class="text-success mb-2">DBDAA (Dynamic Banker)</h6>
+                                <ul class="small mb-0">
+                                    <li>Độ phức tạp: O(nd) - giảm đáng kể</li>
+                                    <li><strong>SRQ:</strong> Sắp xếp theo Max_Need tăng dần</li>
+                                    <li><strong>Fast-track:</strong> Bỏ qua kiểm tra sâu khi Max_Need > Min_A</li>
+                                    <li><strong>Primary Unsafe:</strong> Danh sách chờ cho tiến trình chưa đủ tài nguyên</li>
+                                    <li>Phù hợp hệ thống lớn, động, real-time</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 text-center py-3">
+            <a href="{% url 'app:banker_simulation' %}" class="btn btn-primary me-2">Xem Banker</a>
+            <a href="{% url 'app:dbdaa_simulation' %}" class="btn btn-success me-2">Xem DBDAA</a>
+            <a href="{% url 'app:dashboard' %}" class="btn btn-secondary">← Quay lại Dashboard</a>
+        </div>
+    </div>
+</div>
+

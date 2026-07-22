@@ -1,0 +1,1321 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Nhập Dữ Liệu Mô Phỏng - MiMi Lê{% endblock %}
+{% block body_class %}simulation-page{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ===== IMPORT PAGE STYLES ===== */
+    .import-page .page-hero{
+        background: linear-gradient(135deg, rgba(47,143,157,0.12), rgba(106,174,193,0.08)), rgba(255,255,255,0.9) !important;
+        border-top: 5px solid var(--page-accent, #2f8f9d);
+    }
+    .import-page .card{
+        border: 1px solid rgba(22,36,45,0.08);
+        border-top: 4px solid var(--page-accent, #2f8f9d);
+        background: rgba(255,255,255,0.94);
+        box-shadow: 0 12px 30px rgba(22,36,45,0.07);
+    }
+    .import-page .card-header{
+        background: linear-gradient(180deg, rgba(249,251,252,0.99), rgba(242,247,248,0.96)) !important;
+    }
+    .import-page .card-body{
+        background: rgba(255,255,255,0.96);
+    }
+    .import-page .btn-primary{
+        background: linear-gradient(135deg, var(--page-accent, #2f8f9d), var(--page-accent-2, #6aaec1), #a7d7df) !important;
+        color: #071318 !important;
+        border: none !important;
+    }
+    .import-page .btn-outline-primary{
+        color: var(--page-accent, #2f8f9d) !important;
+        border-color: rgba(47,143,157,0.35) !important;
+    }
+    .import-page .btn-outline-primary:hover{
+        background: rgba(47,143,157,0.08) !important;
+        color: var(--brand-dark) !important;
+    }
+
+    /* ===== DRAG & DROP ZONE ===== */
+    .drop-zone {
+        border: 2.5px dashed rgba(47,143,157,0.3);
+        border-radius: 1.25rem;
+        padding: 3rem 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: linear-gradient(135deg, rgba(47,143,157,0.04), rgba(255,255,255,0.96));
+        position: relative;
+        overflow: hidden;
+    }
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+        border-color: var(--page-accent, #2f8f9d);
+        background: linear-gradient(135deg, rgba(47,143,157,0.10), rgba(255,255,255,0.96));
+        box-shadow: 0 0 0 4px rgba(47,143,157,0.08);
+        transform: translateY(-2px);
+    }
+    .drop-zone.drag-over {
+        border-style: solid;
+        border-color: #2f8f9d;
+        background: rgba(47,143,157,0.08);
+    }
+    .drop-zone .drop-icon {
+        font-size: 3.5rem;
+        color: var(--page-accent, #2f8f9d);
+        margin-bottom: 1rem;
+        transition: transform 0.3s ease;
+    }
+    .drop-zone:hover .drop-icon {
+        transform: scale(1.1) translateY(-4px);
+    }
+    .drop-zone .drop-text {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 0.5rem;
+    }
+    .drop-zone .drop-hint {
+        font-size: 0.85rem;
+        color: var(--text-light);
+    }
+    .drop-zone .drop-formats {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    .drop-zone .drop-formats .format-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: rgba(47,143,157,0.10);
+        color: var(--brand-dark);
+        border: 1px solid rgba(47,143,157,0.15);
+    }
+    .drop-zone .file-selected {
+        display: none;
+    }
+    .drop-zone.has-file .drop-prompt { display: none; }
+    .drop-zone.has-file .file-selected { display: block; }
+    .drop-zone.has-file {
+        border-style: solid;
+        border-color: #198754;
+        background: rgba(25,135,84,0.05);
+    }
+
+    /* ===== FILE INFO ===== */
+    .file-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        background: rgba(255,255,255,0.96);
+        border: 1px solid rgba(22,36,45,0.08);
+        border-radius: 0.75rem;
+        margin-top: 1rem;
+    }
+    .file-info .file-icon {
+        font-size: 2rem;
+        color: var(--page-accent, #2f8f9d);
+    }
+    .file-info .file-details {
+        flex: 1;
+    }
+    .file-info .file-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 0.15rem;
+    }
+    .file-info .file-meta {
+        font-size: 0.8rem;
+        color: var(--text-light);
+    }
+    .file-info .file-remove {
+        cursor: pointer;
+        color: #dc3545;
+        font-size: 1.2rem;
+        transition: transform 0.2s;
+    }
+    .file-info .file-remove:hover {
+        transform: scale(1.2);
+    }
+
+    /* ===== PROGRESS ===== */
+    .import-progress {
+        display: none;
+        margin-top: 1.5rem;
+    }
+    .import-progress.active { display: block; }
+    .import-progress .progress {
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(22,36,45,0.06);
+        overflow: hidden;
+    }
+    .import-progress .progress-bar {
+        background: linear-gradient(90deg, var(--page-accent, #2f8f9d), var(--page-accent-2, #6aaec1));
+        border-radius: 999px;
+        transition: width 0.4s ease;
+        position: relative;
+    }
+    .import-progress .progress-bar::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+    .import-progress .progress-text {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        color: var(--text-light);
+    }
+    .import-progress .progress-status {
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    /* ===== PREVIEW TABLE ===== */
+    .preview-section {
+        display: none;
+        margin-top: 1.5rem;
+    }
+    .preview-section.active { display: block; }
+    .preview-section .preview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    .preview-section .preview-table-wrap {
+        max-height: 350px;
+        overflow-y: auto;
+        border: 1px solid rgba(22,36,45,0.06);
+        border-radius: 0.75rem;
+    }
+    .preview-section .preview-table-wrap table {
+        margin-bottom: 0;
+    }
+    .preview-section .preview-table-wrap thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: linear-gradient(180deg, rgba(249,251,252,0.99), rgba(242,247,248,0.96)) !important;
+        border-bottom: 2px solid rgba(47,143,157,0.2);
+        padding: 0.75rem 0.75rem;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--text-light);
+        font-weight: 600;
+    }
+    .preview-section .preview-table-wrap tbody td {
+        padding: 0.6rem 0.75rem;
+        font-size: 0.85rem;
+        vertical-align: middle;
+        border-color: rgba(22,36,45,0.06);
+    }
+    .preview-section .preview-table-wrap tbody tr:hover {
+        background: rgba(47,143,157,0.04);
+    }
+    .preview-section .preview-table-wrap tbody tr.invalid-row {
+        background: rgba(220,53,69,0.06);
+    }
+    .preview-section .preview-table-wrap tbody tr.invalid-row td {
+        color: #dc3545;
+    }
+
+    /* ===== VALIDATION SUMMARY ===== */
+    .validation-summary {
+        display: none;
+        margin-top: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 0.75rem;
+    }
+    .validation-summary.active { display: block; }
+    .validation-summary.valid {
+        background: rgba(25,135,84,0.08);
+        border: 1px solid rgba(25,135,84,0.2);
+    }
+    .validation-summary.invalid {
+        background: rgba(220,53,69,0.08);
+        border: 1px solid rgba(220,53,69,0.2);
+    }
+    .validation-summary .validation-icon {
+        font-size: 1.5rem;
+        margin-right: 0.75rem;
+    }
+    .validation-summary .validation-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+    .validation-summary .validation-details {
+        font-size: 0.85rem;
+        color: var(--text-light);
+        margin-top: 0.25rem;
+    }
+    .validation-summary .validation-list {
+        margin-top: 0.5rem;
+        padding-left: 1.25rem;
+        font-size: 0.85rem;
+    }
+    .validation-summary .validation-list li {
+        margin-bottom: 0.2rem;
+    }
+    .validation-summary .validation-list li.error { color: #dc3545; }
+    .validation-summary .validation-list li.warning { color: #f57f17; }
+    .validation-summary .validation-list li.success { color: #198754; }
+
+    /* ===== TOAST NOTIFICATION ===== */
+    .toast-container {
+        position: fixed;
+        top: 1.5rem;
+        right: 1.5rem;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .toast-notification {
+        min-width: 320px;
+        max-width: 420px;
+        padding: 1rem 1.25rem;
+        border-radius: 0.75rem;
+        background: rgba(255,255,255,0.98);
+        box-shadow: 0 12px 40px rgba(22,36,45,0.15);
+        border-left: 4px solid var(--page-accent, #2f8f9d);
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        animation: toastIn 0.4s ease forwards;
+        backdrop-filter: blur(10px);
+    }
+    .toast-notification.toast-success { border-left-color: #198754; }
+    .toast-notification.toast-error { border-left-color: #dc3545; }
+    .toast-notification.toast-warning { border-left-color: #ffc107; }
+    .toast-notification.toast-info { border-left-color: #0d6efd; }
+    .toast-notification .toast-icon { font-size: 1.3rem; flex-shrink: 0; }
+    .toast-notification .toast-content { flex: 1; }
+    .toast-notification .toast-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 0.15rem;
+    }
+    .toast-notification .toast-message {
+        font-size: 0.82rem;
+        color: var(--text-light);
+    }
+    .toast-notification .toast-close {
+        cursor: pointer;
+        color: var(--text-light);
+        font-size: 1.1rem;
+        transition: transform 0.2s;
+        background: none;
+        border: none;
+        padding: 0;
+        line-height: 1;
+    }
+    .toast-notification .toast-close:hover { transform: scale(1.2); }
+    @keyframes toastIn {
+        from { opacity: 0; transform: translateX(40px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes toastOut {
+        from { opacity: 1; transform: translateX(0); }
+        to { opacity: 0; transform: translateX(40px); }
+    }
+    .toast-notification.removing {
+        animation: toastOut 0.3s ease forwards;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+        .drop-zone { padding: 2rem 1rem; }
+        .drop-zone .drop-icon { font-size: 2.5rem; }
+        .toast-container {
+            left: 1rem;
+            right: 1rem;
+        }
+        .toast-notification {
+            min-width: auto;
+            max-width: none;
+        }
+        .preview-section .preview-table-wrap {
+            max-height: 250px;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 import-page">
+    <div class="page-hero mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div class="pe-lg-5">
+                <div class="section-kicker mb-2">Nhập dữ liệu</div>
+                <h2 class="mb-2" style="color: var(--brand-dark);">Nhập Dữ Liệu Mô Phỏng Từ File</h2>
+                <p class="text-muted mb-0">Hỗ trợ JSON và CSV. Kéo thả hoặc chọn file để xem trước và nhập dữ liệu.</p>
+            </div>
+            <div class="text-end">
+                <a href="{% url 'app:simulation' %}" class="btn btn-outline-secondary btn-sm">← Quay lại Mô phỏng</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- LEFT: Import Form -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+                    <span class="fs-5">📤</span>
+                    <h5 class="mb-0">Tải File Dữ Liệu</h5>
+                </div>
+                <div class="card-body">
+                    <form id="importForm" action="{% url 'app:import_simulation_data' %}" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Drag & Drop Zone -->
+                        <div class="drop-zone" id="dropZone">
+                            <div class="drop-prompt">
+                                <div class="drop-icon">📂</div>
+                                <div class="drop-text">Kéo thả file vào đây</div>
+                                <div class="drop-hint">hoặc nhấp để chọn file từ máy tính</div>
+                            <div class="drop-formats">
+                                <span class="format-badge">JSON</span>
+                                <span class="format-badge">CSV</span>
+                                <span class="format-badge">Excel</span>
+                            </div>
+                            </div>
+                            <div class="file-selected">
+                                <div class="drop-icon">✅</div>
+                                <div class="drop-text" id="selectedFileName">File đã chọn</div>
+                                <div class="drop-hint" id="selectedFileSize">Nhấp để đổi file khác</div>
+                            </div>
+                            <input type="file" name="file" id="fileInput" accept=".json,.csv,.xlsx,.xls" style="display:none;" required>
+                        </div>
+
+                        <!-- File Info -->
+                        <div class="file-info" id="fileInfo" style="display:none;">
+                            <div class="file-icon" id="fileIcon">📄</div>
+                            <div class="file-details">
+                                <div class="file-name" id="fileName">-</div>
+                                <div class="file-meta" id="fileMeta">-</div>
+                            </div>
+                            <span class="file-remove" id="fileRemove" title="Xóa file">&times;</span>
+                        </div>
+
+                        <!-- Redirect Selection -->
+                        <div class="mt-3">
+                            <label class="form-label">Chọn trang mô phỏng đích</label>
+                            <select name="redirect_to" class="form-select" id="redirectSelect">
+                                <option value="app:scheduling_simulation">Lập lịch CPU (FCFS / SJF / RR)</option>
+                                <option value="app:scheduling_compare">So sánh lập lịch CPU (Q-Learning)</option>
+                                <option value="app:omdrrs_simulation">Mô phỏng OMDRRS</option>
+                                <option value="app:banker_simulation">Thuật toán Banker (Tránh Deadlock)</option>
+                                <option value="app:dbdaa_simulation">Thuật toán DBDAA (Cải tiến Banker)</option>
+                                <option value="app:banker_dbdaa_compare">So sánh Banker và DBDAA</option>
+                                <option value="app:memory_simulation">Mô phỏng thay thế trang bộ nhớ</option>
+                                <option value="app:synchronization_simulation">Mô phỏng đồng bộ hóa (Producer-Consumer)</option>
+                            </select>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="import-progress" id="importProgress">
+                            <div class="progress">
+                                <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%;"></div>
+                            </div>
+                            <div class="progress-text">
+                                <span class="progress-status" id="progressStatus">Đang xử lý...</span>
+                                <span id="progressPercent">0%</span>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="button" class="btn btn-primary flex-fill" id="previewBtn" disabled>
+                                <i class="fa-solid fa-eye me-1"></i> Xem Trước
+                            </button>
+                            <button type="submit" class="btn btn-success flex-fill" id="importBtn" disabled>
+                                <i class="fa-solid fa-upload me-1"></i> Nhập Dữ Liệu
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="resetBtn">
+                                <i class="fa-solid fa-rotate-left me-1"></i> Đặt Lại
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Validation Summary -->
+            <div class="validation-summary" id="validationSummary">
+                <div class="d-flex align-items-start">
+                    <span class="validation-icon" id="validationIcon">✅</span>
+                    <div>
+                        <div class="validation-title" id="validationTitle">Dữ liệu hợp lệ</div>
+                        <div class="validation-details" id="validationDetails">Sẵn sàng để nhập.</div>
+                        <ul class="validation-list" id="validationList"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Preview & Samples -->
+        <div class="col-lg-5">
+            <!-- Preview Section -->
+            <div class="preview-section" id="previewSection">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fa-solid fa-table me-1"></i> Xem Trước Dữ Liệu</h5>
+                        <span class="badge bg-primary" id="recordCount">0 bản ghi</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="preview-table-wrap" id="previewTableWrap">
+                            <table class="table table-sm mb-0">
+                                <thead id="previewThead"></thead>
+                                <tbody id="previewTbody"></tbody>
+                            </table>
+                        </div>
+                        <div class="p-3 text-center text-muted small" id="previewEmpty" style="display:none;">
+                            <i class="fa-solid fa-database me-1"></i> Không có dữ liệu để xem trước
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- JSON Samples -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+                    <span class="fs-5">📋</span>
+                    <h5 class="mb-0">File Mẫu</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">Nhấp vào tab để xem cấu trúc file mẫu.</p>
+                    
+                    <ul class="nav nav-pills nav-fill mb-3 gap-1 bg-light p-1 rounded" id="samplesTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active py-1 px-2 small" id="cpu-tab" data-bs-toggle="tab" data-bs-target="#cpu-sample" type="button" role="tab">CPU</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-1 px-2 small" id="banker-tab" data-bs-toggle="tab" data-bs-target="#banker-sample" type="button" role="tab">Banker</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-1 px-2 small" id="mem-tab" data-bs-toggle="tab" data-bs-target="#mem-sample" type="button" role="tab">Memory</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-1 px-2 small" id="sync-tab" data-bs-toggle="tab" data-bs-target="#sync-sample" type="button" role="tab">Sync</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-1 px-2 small" id="machines-tab" data-bs-toggle="tab" data-bs-target="#machines-sample" type="button" role="tab">Máy</button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="samplesContent">
+                        <div class="tab-pane fade show active" id="cpu-sample" role="tabpanel">
+                            <div class="position-relative">
+                                <button class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2 btn-copy" data-target="cpu-code">Sao chép</button>
+                                <pre class="bg-dark text-light p-3 rounded small mb-0" style="max-height: 160px; overflow-y: auto;"><code id="cpu-code">{
+  "type": "scheduling",
+  "processes": [
+    {"pid": 1, "name": "Vision Lab", "arrival": 0, "burst": 28, "priority": 3},
+    {"pid": 2, "name": "Alpha Test", "arrival": 2, "burst": 12, "priority": 1},
+    {"pid": 3, "name": "Stream Arena", "arrival": 4, "burst": 18, "priority": 2}
+  ],
+  "quantum": 20
+}</code></pre>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="banker-sample" role="tabpanel">
+                            <div class="position-relative">
+                                <button class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2 btn-copy" data-target="banker-code">Sao chép</button>
+                                <pre class="bg-dark text-light p-3 rounded small mb-0" style="max-height: 160px; overflow-y: auto;"><code id="banker-code">{
+  "type": "banker",
+  "banker": {
+    "total": [10, 5, 12],
+    "allocation": [[1,1,2],[2,0,1],[1,1,0]],
+    "max_need": [[3,2,3],[3,2,2],[2,2,1]],
+    "names": ["S1 - VIP A","S2 - VIP B","S3 - VIP C"]
+  }
+}</code></pre>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="mem-sample" role="tabpanel">
+                            <div class="position-relative">
+                                <button class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2 btn-copy" data-target="mem-code">Sao chép</button>
+                                <pre class="bg-dark text-light p-3 rounded small mb-0" style="max-height: 160px; overflow-y: auto;"><code id="mem-code">{
+  "type": "memory",
+  "memory": {
+    "frame_count": 4,
+    "references": [7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7]
+  }
+}</code></pre>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="sync-sample" role="tabpanel">
+                            <div class="position-relative">
+                                <button class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2 btn-copy" data-target="sync-code">Sao chép</button>
+                                <pre class="bg-dark text-light p-3 rounded small mb-0" style="max-height: 160px; overflow-y: auto;"><code id="sync-code">{
+  "type": "synchronization",
+  "synchronization": {
+    "buffer_size": 4,
+    "producer_count": 3,
+    "consumer_count": 2,
+    "sequence": ["P","P","C","P","C","C","P","P","C","P"]
+  }
+}</code></pre>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="machines-sample" role="tabpanel">
+                            <div class="position-relative">
+                                <button class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2 btn-copy" data-target="machines-code">Sao chép</button>
+                                <pre class="bg-dark text-light p-3 rounded small mb-0" style="max-height: 160px; overflow-y: auto;"><code id="machines-code">{
+  "type": "machines",
+  "machines": [
+    {"name": "Máy 01", "cpu": "i7-12700", "ram": "16GB", "disk": "512GB SSD", "gpu": "RTX 3060", "status": "available"},
+    {"name": "Máy 02", "cpu": "i5-12400", "ram": "8GB", "disk": "256GB SSD", "gpu": "GTX 1660", "status": "busy"},
+    {"name": "Máy 03", "cpu": "Ryzen 5 5600", "ram": "16GB", "disk": "1TB HDD", "gpu": "RX 6600", "status": "maintenance"}
+  ]
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    'use strict';
+
+    // ===== DOM Elements =====
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileMeta = document.getElementById('fileMeta');
+    const fileIcon = document.getElementById('fileIcon');
+    const fileRemove = document.getElementById('fileRemove');
+    const previewBtn = document.getElementById('previewBtn');
+    const importBtn = document.getElementById('importBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const importForm = document.getElementById('importForm');
+    const importProgress = document.getElementById('importProgress');
+    const progressBar = document.getElementById('progressBar');
+    const progressStatus = document.getElementById('progressStatus');
+    const progressPercent = document.getElementById('progressPercent');
+    const previewSection = document.getElementById('previewSection');
+    const previewThead = document.getElementById('previewThead');
+    const previewTbody = document.getElementById('previewTbody');
+    const previewEmpty = document.getElementById('previewEmpty');
+    const recordCount = document.getElementById('recordCount');
+    const validationSummary = document.getElementById('validationSummary');
+    const validationIcon = document.getElementById('validationIcon');
+    const validationTitle = document.getElementById('validationTitle');
+    const validationDetails = document.getElementById('validationDetails');
+    const validationList = document.getElementById('validationList');
+    const toastContainer = document.getElementById('toastContainer');
+    const selectedFileName = document.getElementById('selectedFileName');
+    const selectedFileSize = document.getElementById('selectedFileSize');
+
+    let currentFile = null;
+    let parsedData = null;
+
+    // ===== File Size Formatter =====
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // ===== Toast Notification =====
+    function showToast(type, title, message, duration) {
+        duration = duration || 4000;
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification toast-' + type;
+        toast.innerHTML = `
+            <span class="toast-icon">${icons[type] || 'ℹ️'}</span>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+            <button class="toast-close">&times;</button>
+        `;
+        toast.querySelector('.toast-close').addEventListener('click', function() {
+            removeToast(toast);
+        });
+        toastContainer.appendChild(toast);
+        setTimeout(function() { removeToast(toast); }, duration);
+    }
+
+    function removeToast(toast) {
+        if (toast.classList.contains('removing')) return;
+        toast.classList.add('removing');
+        setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+    }
+
+    // ===== Drag & Drop =====
+    dropZone.addEventListener('click', function() {
+        fileInput.click();
+    });
+
+    dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length > 0) {
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', function() {
+        if (fileInput.files.length > 0) {
+            handleFile(fileInput.files[0]);
+        }
+    });
+
+    fileRemove.addEventListener('click', function() {
+        resetImport();
+    });
+
+    // ===== Handle File Selection =====
+    function handleFile(file) {
+        // Validate file type
+        const ext = file.name.toLowerCase().split('.').pop();
+        if (!['json', 'csv', 'xlsx', 'xls'].includes(ext)) {
+            showToast('error', 'Định dạng không hỗ trợ', 'Chỉ chấp nhận file .json, .csv hoặc .xlsx.');
+            return;
+        }
+
+        // Validate file size (max 10MB)
+        const MAX_SIZE = 10 * 1024 * 1024;
+        if (file.size > MAX_SIZE) {
+            showToast('error', 'File quá lớn', 'Dung lượng tối đa 10MB. File hiện tại: ' + formatFileSize(file.size));
+            return;
+        }
+
+        // Validate empty file
+        if (file.size === 0) {
+            showToast('error', 'File rỗng', 'File không chứa dữ liệu. Vui lòng chọn file khác.');
+            return;
+        }
+
+        currentFile = file;
+
+        // Update UI
+        dropZone.classList.add('has-file');
+        selectedFileName.textContent = file.name;
+        selectedFileSize.textContent = formatFileSize(file.size);
+
+        fileInfo.style.display = 'flex';
+        fileName.textContent = file.name;
+        fileMeta.textContent = formatFileSize(file.size) + ' • ' + ext.toUpperCase();
+        fileIcon.textContent = ext === 'json' ? '📋' : '📊';
+
+        previewBtn.disabled = false;
+        importBtn.disabled = false;
+
+        showToast('success', 'File đã chọn', file.name + ' (' + formatFileSize(file.size) + ')');
+    }
+
+    // ===== Preview File =====
+    previewBtn.addEventListener('click', function() {
+        if (!currentFile) {
+            showToast('warning', 'Chưa chọn file', 'Vui lòng chọn một file dữ liệu trước.');
+            return;
+        }
+        previewFile(currentFile);
+    });
+
+    function previewFile(file) {
+        // Show progress
+        importProgress.classList.add('active');
+        setProgress(10, 'Đang đọc file...');
+
+        const reader = new FileReader();
+
+        reader.onprogress = function(e) {
+            if (e.lengthComputable) {
+                var pct = Math.round((e.loaded / e.total) * 40) + 10;
+                setProgress(pct, 'Đang đọc file...');
+            }
+        };
+
+        reader.onload = function(e) {
+            setProgress(50, 'Đang phân tích dữ liệu...');
+            try {
+                const ext = file.name.toLowerCase().split('.').pop();
+                if (ext === 'json') {
+                    parsedData = JSON.parse(e.target.result);
+                } else {
+                    // CSV parsing
+                    parsedData = parseCSV(e.target.result);
+                }
+                setProgress(70, 'Đang kiểm tra dữ liệu...');
+                renderPreview(parsedData);
+                validateData(parsedData);
+                setProgress(100, 'Hoàn tất!');
+                setTimeout(function() {
+                    importProgress.classList.remove('active');
+                }, 800);
+            } catch(err) {
+                setProgress(0, '');
+                importProgress.classList.remove('active');
+                showToast('error', 'Lỗi đọc file', err.message);
+            }
+        };
+
+        reader.onerror = function() {
+            setProgress(0, '');
+            importProgress.classList.remove('active');
+            showToast('error', 'Lỗi đọc file', 'Không thể đọc file. Vui lòng thử lại.');
+        };
+
+        reader.readAsText(file);
+    }
+
+    // ===== Set Progress =====
+    function setProgress(pct, status) {
+        progressBar.style.width = pct + '%';
+        progressPercent.textContent = pct + '%';
+        if (status) progressStatus.textContent = status;
+    }
+
+    // ===== Parse CSV =====
+    function parseCSV(text) {
+        const lines = text.split('\n').filter(function(line) { return line.trim(); });
+        if (lines.length === 0) throw new Error('File CSV rỗng.');
+        const headers = lines[0].split(',').map(function(h) { return h.trim().replace(/^["']|["']$/g, ''); });
+        const rows = [];
+        for (var i = 1; i < lines.length; i++) {
+            var vals = lines[i].split(',').map(function(v) { return v.trim().replace(/^["']|["']$/g, ''); });
+            var row = {};
+            for (var j = 0; j < headers.length; j++) {
+                row[headers[j]] = vals[j] || '';
+            }
+            rows.push(row);
+        }
+        return { type: 'csv', headers: headers, rows: rows };
+    }
+
+    // ===== Render Preview =====
+    function renderPreview(data) {
+        previewSection.classList.add('active');
+        previewEmpty.style.display = 'none';
+
+        if (data.type === 'csv') {
+            renderCSVPreview(data);
+        } else if (data.processes) {
+            renderProcessPreview(data.processes);
+        } else if (data.banker) {
+            renderBankerPreview(data.banker);
+        } else if (data.memory) {
+            renderMemoryPreview(data.memory);
+        } else if (data.synchronization) {
+            renderSyncPreview(data.synchronization);
+        } else if (data.machines) {
+            renderMachinesPreview(data.machines);
+        } else {
+            renderGenericPreview(data);
+        }
+    }
+
+    function renderCSVPreview(data) {
+        var thead = '<tr>';
+        data.headers.forEach(function(h) {
+            thead += '<th>' + h + '</th>';
+        });
+        thead += '</tr>';
+        previewThead.innerHTML = thead;
+
+        var tbody = '';
+        var count = Math.min(data.rows.length, 50);
+        for (var i = 0; i < count; i++) {
+            tbody += '<tr>';
+            data.headers.forEach(function(h) {
+                tbody += '<td>' + (data.rows[i][h] || '') + '</td>';
+            });
+            tbody += '</tr>';
+        }
+        previewTbody.innerHTML = tbody;
+        recordCount.textContent = data.rows.length + ' bản ghi';
+    }
+
+    function renderProcessPreview(processes) {
+        var thead = '<tr><th>PID</th><th>Tên</th><th>Arrival</th><th>Burst</th><th>Priority</th></tr>';
+        previewThead.innerHTML = thead;
+
+        var tbody = '';
+        var count = Math.min(processes.length, 50);
+        for (var i = 0; i < count; i++) {
+            var p = processes[i];
+            tbody += '<tr>';
+            tbody += '<td>' + (p.pid || i+1) + '</td>';
+            tbody += '<td>' + (p.name || 'P' + (i+1)) + '</td>';
+            tbody += '<td>' + (p.arrival || 0) + '</td>';
+            tbody += '<td>' + (p.burst || 0) + '</td>';
+            tbody += '<td>' + (p.priority || 0) + '</td>';
+            tbody += '</tr>';
+        }
+        previewTbody.innerHTML = tbody;
+        recordCount.textContent = processes.length + ' tiến trình';
+    }
+
+    function renderBankerPreview(banker) {
+        var thead = '<tr><th>Tiến trình</th>';
+        for (var r = 0; r < (banker.total || []).length; r++) {
+            thead += '<th>Tài nguyên ' + (r+1) + '</th>';
+        }
+        thead += '</tr>';
+        previewThead.innerHTML = thead;
+
+        var tbody = '';
+        var names = banker.names || [];
+        var alloc = banker.allocation || [];
+        var maxN = banker.max_need || [];
+        var count = Math.min(alloc.length, 50);
+        for (var i = 0; i < count; i++) {
+            tbody += '<tr>';
+            tbody += '<td><strong>' + (names[i] || 'P' + (i+1)) + '</strong></td>';
+            var allocRow = alloc[i] || [];
+            for (var j = 0; j < allocRow.length; j++) {
+                tbody += '<td>' + allocRow[j] + '</td>';
+            }
+            tbody += '</tr>';
+        }
+        previewTbody.innerHTML = tbody;
+        recordCount.textContent = alloc.length + ' tiến trình';
+    }
+
+    function renderMemoryPreview(memory) {
+        var refs = memory.references || [];
+        var thead = '<tr><th>#</th><th>Trang</th></tr>';
+        previewThead.innerHTML = thead;
+
+        var tbody = '';
+        var count = Math.min(refs.length, 50);
+        for (var i = 0; i < count; i++) {
+            tbody += '<tr><td>' + (i+1) + '</td><td>' + refs[i] + '</td></tr>';
+        }
+        previewTbody.innerHTML = tbody;
+        recordCount.textContent = refs.length + ' tham chiếu';
+    }
+
+    function renderSyncPreview(sync) {
+        var seq = sync.sequence || [];
+        var thead = '<tr><th>#</th><th>Thao tác</th></tr>';
+        previewThead.innerHTML = thead;
+
+        var tbody = '';
+        var count = Math.min(seq.length, 50);
+        for (var i = 0; i < count; i++) {
+            var label = seq[i] === 'P' ? 'Producer' : 'Consumer';
+            tbody += '<tr><td>' + (i+1) + '</td><td><span class="badge ' + (seq[i] === 'P' ? 'bg-success' : 'bg-warning') + '">' + label + '</span></td></tr>';
+        }
+        previewTbody.innerHTML = tbody;
+        recordCount.textContent = seq.length + ' thao tác';
+    }
+
+    function renderMachinesPreview(machines) {
+        var thead = '<tr><th>#</th><th>Tên máy</th><th>CPU</th><th>RAM</th><th>Disk</th><th>GPU</th><th>Trạng thái</th></tr>';
+        previewThead.innerHTML = thead;
+
+        var tbody = '';
+        var count = Math.min(machines.length, 50);
+        for (var i = 0; i < count; i++) {
+            var m = machines[i];
+            tbody += '<tr>';
+            tbody += '<td>' + (i+1) + '</td>';
+            tbody += '<td><strong>' + (m.name || m.ten_may || 'Máy ' + (i+1)) + '</strong></td>';
+            tbody += '<td>' + (m.cpu || m.CPU || '-') + '</td>';
+            tbody += '<td>' + (m.ram || m.RAM || '-') + '</td>';
+            tbody += '<td>' + (m.disk || m.Disk || '-') + '</td>';
+            tbody += '<td>' + (m.gpu || m.GPU || '-') + '</td>';
+            var status = m.status || m.trang_thai || 'available';
+            var statusLabel = status === 'available' || status === 'ready' ? 'Sẵn sàng' : status === 'busy' || status === 'in_use' ? 'Đang dùng' : status === 'maintenance' || status === 'broken' ? 'Bảo trì' : status;
+            var statusClass = status === 'available' || status === 'ready' ? 'bg-success' : status === 'busy' || status === 'in_use' ? 'bg-warning' : 'bg-secondary';
+            tbody += '<td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td>';
+            tbody += '</tr>';
+        }
+        previewTbody.innerHTML = tbody;
+        recordCount.textContent = machines.length + ' máy';
+    }
+
+    function renderGenericPreview(data) {
+        var keys = Object.keys(data);
+        var thead = '<tr><th>Khóa</th><th>Giá trị</th></tr>';
+        previewThead.innerHTML = thead;
+
+        var tbody = '';
+        keys.forEach(function(k) {
+            var val = data[k];
+            if (typeof val === 'object') val = JSON.stringify(val).substring(0, 80) + '...';
+            tbody += '<tr><td><strong>' + k + '</strong></td><td>' + val + '</td></tr>';
+        });
+        previewTbody.innerHTML = tbody;
+        recordCount.textContent = keys.length + ' trường';
+    }
+
+    // ===== Validate Data =====
+    function validateData(data) {
+        validationSummary.classList.add('active');
+        validationList.innerHTML = '';
+        var errors = [];
+        var warnings = [];
+        var successes = [];
+
+        if (data.type === 'csv') {
+            // CSV validation
+            if (data.rows.length === 0) {
+                errors.push('File CSV không có dữ liệu.');
+            } else {
+                successes.push('Đọc được ' + data.rows.length + ' dòng dữ liệu.');
+            }
+            // Check for empty cells
+            var emptyCount = 0;
+            data.rows.forEach(function(row, idx) {
+                data.headers.forEach(function(h) {
+                    if (!row[h] || row[h].trim() === '') emptyCount++;
+                });
+            });
+            if (emptyCount > 0) {
+                warnings.push('Có ' + emptyCount + ' ô dữ liệu trống.');
+            }
+        } else if (data.processes) {
+            // Scheduling validation
+            var procs = data.processes;
+            if (procs.length === 0) {
+                errors.push('Danh sách tiến trình trống.');
+            } else {
+                successes.push('Đọc được ' + procs.length + ' tiến trình.');
+            }
+            // Check required fields
+            procs.forEach(function(p, idx) {
+                if (p.burst === undefined || p.burst === null) {
+                    errors.push('Tiến trình #' + (idx+1) + ' thiếu burst time.');
+                }
+                if (p.arrival === undefined || p.arrival === null) {
+                    warnings.push('Tiến trình #' + (idx+1) + ' thiếu arrival time (mặc định 0).');
+                }
+                if (typeof p.burst === 'string' && isNaN(parseInt(p.burst))) {
+                    errors.push('Tiến trình #' + (idx+1) + ' burst time không hợp lệ: "' + p.burst + '".');
+                }
+            });
+            // Check duplicate PIDs
+            var pids = procs.map(function(p) { return p.pid; }).filter(function(pid) { return pid !== undefined; });
+            var dupPids = pids.filter(function(pid, idx) { return pids.indexOf(pid) !== idx; });
+            if (dupPids.length > 0) {
+                warnings.push('PID trùng lặp: ' + [...new Set(dupPids)].join(', ') + '.');
+            }
+        } else if (data.banker) {
+            var banker = data.banker;
+            if (!banker.total || banker.total.length === 0) {
+                errors.push('Thiếu tổng tài nguyên (total).');
+            } else {
+                successes.push('Tổng tài nguyên: [' + banker.total.join(', ') + '].');
+            }
+            if (!banker.allocation || banker.allocation.length === 0) {
+                errors.push('Thiếu dữ liệu allocation.');
+            } else {
+                successes.push('Có ' + banker.allocation.length + ' tiến trình.');
+            }
+            if (!banker.max_need || banker.max_need.length === 0) {
+                errors.push('Thiếu dữ liệu max_need.');
+            }
+            // Check dimensions
+            if (banker.allocation && banker.max_need && banker.allocation.length !== banker.max_need.length) {
+                errors.push('Số lượng allocation (' + banker.allocation.length + ') và max_need (' + banker.max_need.length + ') không khớp.');
+            }
+        } else if (data.memory) {
+            var mem = data.memory;
+            if (!mem.references || mem.references.length === 0) {
+                errors.push('Thiếu chuỗi tham chiếu trang (references).');
+            } else {
+                successes.push('Có ' + mem.references.length + ' tham chiếu trang.');
+            }
+            if (!mem.frame_count || mem.frame_count < 2) {
+                warnings.push('Frame count nhỏ hơn 2, sẽ dùng mặc định 3.');
+            }
+        } else if (data.machines) {
+            var machines = data.machines;
+            if (machines.length === 0) {
+                errors.push('Danh sách máy trống.');
+            } else {
+                successes.push('Đọc được ' + machines.length + ' máy.');
+            }
+            // Check required fields
+            machines.forEach(function(m, idx) {
+                if (!m.name && !m.ten_may) {
+                    warnings.push('Máy #' + (idx+1) + ' thiếu tên máy.');
+                }
+                if (m.cpu === undefined && m.CPU === undefined) {
+                    warnings.push('Máy #' + (idx+1) + ' thiếu thông tin CPU.');
+                }
+                if (m.ram === undefined && m.RAM === undefined) {
+                    warnings.push('Máy #' + (idx+1) + ' thiếu thông tin RAM.');
+                }
+            });
+            // Check duplicate names
+            var names = machines.map(function(m) { return m.name || m.ten_may; }).filter(function(n) { return n; });
+            var dupNames = names.filter(function(n, idx) { return names.indexOf(n) !== idx; });
+            if (dupNames.length > 0) {
+                warnings.push('Tên máy trùng lặp: ' + [...new Set(dupNames)].join(', ') + '.');
+            }
+        } else {
+            warnings.push('Không thể xác định loại dữ liệu. Kiểm tra thủ công trước khi nhập.');
+        }
+
+        // Render validation
+        var hasErrors = errors.length > 0;
+        validationSummary.className = 'validation-summary active ' + (hasErrors ? 'invalid' : 'valid');
+        validationIcon.textContent = hasErrors ? '❌' : '✅';
+        validationTitle.textContent = hasErrors ? 'Dữ liệu không hợp lệ' : 'Dữ liệu hợp lệ';
+        validationDetails.textContent = hasErrors
+            ? 'Vui lòng sửa các lỗi sau trước khi nhập.'
+            : 'Sẵn sàng để nhập dữ liệu vào hệ thống.';
+
+        errors.forEach(function(e) {
+            var li = document.createElement('li');
+            li.className = 'error';
+            li.textContent = '❌ ' + e;
+            validationList.appendChild(li);
+        });
+        warnings.forEach(function(w) {
+            var li = document.createElement('li');
+            li.className = 'warning';
+            li.textContent = '⚠️ ' + w;
+            validationList.appendChild(li);
+        });
+        successes.forEach(function(s) {
+            var li = document.createElement('li');
+            li.className = 'success';
+            li.textContent = '✅ ' + s;
+            validationList.appendChild(li);
+        });
+
+        importBtn.disabled = hasErrors;
+    }
+
+    // ===== Reset =====
+    function resetImport() {
+        currentFile = null;
+        parsedData = null;
+        fileInput.value = '';
+        dropZone.classList.remove('has-file');
+        fileInfo.style.display = 'none';
+        previewBtn.disabled = true;
+        importBtn.disabled = true;
+        previewSection.classList.remove('active');
+        validationSummary.classList.remove('active');
+        importProgress.classList.remove('active');
+        setProgress(0, '');
+        previewThead.innerHTML = '';
+        previewTbody.innerHTML = '';
+        recordCount.textContent = '0 bản ghi';
+    }
+
+    resetBtn.addEventListener('click', resetImport);
+
+    // ===== Form Submit with AJAX =====
+    importForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!currentFile) {
+            showToast('warning', 'Chưa chọn file', 'Vui lòng chọn file dữ liệu trước khi nhập.');
+            return;
+        }
+
+        // Show progress
+        importProgress.classList.add('active');
+        setProgress(10, 'Đang chuẩn bị...');
+        previewBtn.disabled = true;
+        importBtn.disabled = true;
+
+        var formData = new FormData();
+        formData.append('file', currentFile);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '{% url "app:api_import_simulation_data" %}', true);
+
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                var pct = Math.round((e.loaded / e.total) * 60) + 10;
+                setProgress(pct, 'Đang tải lên... (' + formatFileSize(e.loaded) + ' / ' + formatFileSize(e.total) + ')');
+            }
+        };
+
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    var resp = JSON.parse(xhr.responseText);
+                    setProgress(100, 'Hoàn tất!');
+                    
+                    if (resp.ok) {
+                        showToast('success', 'Nhập dữ liệu thành công!', 
+                            'Đã nhập ' + (resp.record_count || 0) + ' bản ghi vào hệ thống.');
+                        
+                        // Show success details
+                        validationSummary.classList.add('active');
+                        validationSummary.className = 'validation-summary active valid';
+                        validationIcon.textContent = '✅';
+                        validationTitle.textContent = 'Nhập dữ liệu thành công!';
+                        validationDetails.textContent = 'Dữ liệu đã được nhập vào hệ thống.';
+                        validationList.innerHTML = '';
+                        
+                        if (resp.successes) {
+                            resp.successes.forEach(function(s) {
+                                var li = document.createElement('li');
+                                li.className = 'success';
+                                li.textContent = '✅ ' + s;
+                                validationList.appendChild(li);
+                            });
+                        }
+                        
+                        // Auto redirect after brief pause to the selected simulation page
+                        var redirectTo = document.getElementById('redirectSelect').value;
+                        var redirectMap = {
+                            'app:scheduling_simulation': '{% url "app:scheduling_simulation" %}?data_mode=file',
+                            'app:scheduling_compare': '{% url "app:scheduling_compare" %}?data_mode=file',
+                            'app:omdrrs_simulation': '{% url "app:omdrrs_simulation" %}?data_mode=file',
+                            'app:banker_simulation': '{% url "app:banker_simulation" %}?scenario=file',
+                            'app:dbdaa_simulation': '{% url "app:dbdaa_simulation" %}?scenario=file',
+                            'app:banker_dbdaa_compare': '{% url "app:banker_dbdaa_compare" %}?scenario=file',
+                            'app:memory_simulation': '{% url "app:memory_simulation" %}?data_mode=file',
+                            'app:synchronization_simulation': '{% url "app:synchronization_simulation" %}?pattern=file',
+                        };
+                        var targetUrl = redirectMap[redirectTo] || '{% url "app:simulation" %}?data_mode=file';
+                        setTimeout(function() { window.location.href = targetUrl; }, 1200);
+                    } else {
+                        showToast('error', 'Nhập dữ liệu thất bại', 
+                            resp.error || 'Có lỗi xảy ra khi nhập dữ liệu.');
+                        
+                        // Show errors
+                        validationSummary.classList.add('active');
+                        validationSummary.className = 'validation-summary active invalid';
+                        validationIcon.textContent = '❌';
+                        validationTitle.textContent = 'Nhập dữ liệu thất bại';
+                        validationDetails.textContent = resp.error || 'Vui lòng kiểm tra lại dữ liệu.';
+                        validationList.innerHTML = '';
+                        
+                        if (resp.errors) {
+                            resp.errors.forEach(function(e) {
+                                var li = document.createElement('li');
+                                li.className = 'error';
+                                li.textContent = '❌ ' + e;
+                                validationList.appendChild(li);
+                            });
+                        }
+                        if (resp.warnings) {
+                            resp.warnings.forEach(function(w) {
+                                var li = document.createElement('li');
+                                li.className = 'warning';
+                                li.textContent = '⚠️ ' + w;
+                                validationList.appendChild(li);
+                            });
+                        }
+                        
+                        importBtn.disabled = false;
+                        previewBtn.disabled = false;
+                    }
+                } catch(err) {
+                    showToast('error', 'Lỗi xử lý', 'Phản hồi từ máy chủ không hợp lệ.');
+                    importBtn.disabled = false;
+                    previewBtn.disabled = false;
+                }
+            } else {
+                try {
+                    var resp = JSON.parse(xhr.responseText);
+                    showToast('error', 'Lỗi máy chủ', resp.error || 'Máy chủ trả về lỗi ' + xhr.status);
+                } catch(err) {
+                    showToast('error', 'Lỗi máy chủ', 'Máy chủ trả về lỗi ' + xhr.status);
+                }
+                importBtn.disabled = false;
+                previewBtn.disabled = false;
+            }
+            setTimeout(function() {
+                importProgress.classList.remove('active');
+            }, 1500);
+        };
+
+        xhr.onerror = function() {
+            showToast('error', 'Lỗi kết nối', 'Không thể kết nối đến máy chủ. Vui lòng thử lại.');
+            importBtn.disabled = false;
+            previewBtn.disabled = false;
+            importProgress.classList.remove('active');
+        };
+
+        xhr.send(formData);
+    });
+
+    // ===== Copy Sample Code =====
+    document.querySelectorAll('.btn-copy').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var targetId = btn.getAttribute('data-target');
+            var codeEl = document.getElementById(targetId);
+            if (codeEl) {
+                var text = codeEl.textContent;
+                navigator.clipboard.writeText(text).then(function() {
+                    showToast('success', 'Đã sao chép', 'Mẫu JSON đã được sao chép vào clipboard.');
+                }).catch(function() {
+                    // Fallback
+                    var textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    showToast('success', 'Đã sao chép', 'Mẫu JSON đã được sao chép vào clipboard.');
+                });
+            }
+        });
+    });
+
+    // ===== Handle Django messages as toasts =====
+    {% if messages %}
+        {% for message in messages %}
+            showToast(
+                '{{ message.tags }}' === 'error' ? 'error' : '{{ message.tags }}' === 'success' ? 'success' : 'info',
+                '{{ message.tags|capfirst }}',
+                '{{ message|escapejs }}'
+            );
+        {% endfor %}
+    {% endif %}
+})();
+</script>
+{% endblock %}

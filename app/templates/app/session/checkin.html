@@ -1,0 +1,488 @@
+{% extends 'app/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Nhận Khách - MiMi Lê{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ===== Checkin Page ===== */
+.checkin-wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* Header Card */
+.checkin-header {
+    background: linear-gradient(135deg, #c5a059 0%, #d4b06a 100%);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: 1.5rem 2rem;
+    color: #1a1a1a;
+}
+.checkin-header h4 {
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+}
+.checkin-header p {
+    opacity: 0.8;
+    font-size: 0.9rem;
+    margin-bottom: 0;
+}
+.checkin-header .badge {
+    background: rgba(26,26,26,0.15);
+    color: #1a1a1a;
+    font-weight: 600;
+    padding: 0.4rem 0.9rem;
+    border-radius: 50px;
+}
+
+/* Form Fields */
+.form-section {
+    padding: 1.5rem 2rem;
+}
+.form-section .form-label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+}
+.form-section .form-control,
+.form-section .form-select {
+    border: 2px solid rgba(31,39,51,0.08);
+    border-radius: 0.6rem;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.9rem;
+    background: var(--surface-2);
+    transition: all 0.2s ease;
+}
+.form-section .form-control:focus,
+.form-section .form-select:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 4px rgba(197,160,89,0.12);
+    background: var(--surface);
+}
+
+/* Service Cards */
+.service-section {
+    padding: 0 2rem 1.5rem;
+}
+.service-section .section-title {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+.service-section .section-desc {
+    font-size: 0.82rem;
+    color: var(--text-light);
+    margin-bottom: 1rem;
+}
+.service-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0.8rem;
+}
+.service-card {
+    border: 2px solid rgba(31,39,51,0.06);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.1rem;
+    transition: all 0.25s ease;
+    cursor: pointer;
+    position: relative;
+    background: var(--surface);
+}
+.service-card:hover {
+    border-color: var(--brand-light);
+    background: #fffcf5;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(197,160,89,0.1);
+}
+.service-card.selected {
+    border-color: var(--brand);
+    background: #fff8eb;
+    box-shadow: 0 0 0 3px rgba(197,160,89,0.15);
+}
+.service-card .service-checkbox {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.7rem;
+    width: 1.2rem;
+    height: 1.2rem;
+    cursor: pointer;
+    accent-color: var(--brand);
+}
+.service-card .service-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 0.15rem;
+    padding-right: 1.8rem;
+}
+.service-card .service-category {
+    font-size: 0.72rem;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.4rem;
+}
+.service-card .service-price {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--brand-dark);
+}
+.service-card .quantity-control {
+    margin-top: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.service-card .quantity-control label {
+    font-size: 0.78rem;
+    color: var(--text-light);
+}
+.service-card .quantity-control input {
+    width: 65px;
+    text-align: center;
+    border: 1.5px solid rgba(31,39,51,0.1);
+    border-radius: 0.4rem;
+    padding: 0.25rem 0.3rem;
+    font-size: 0.85rem;
+}
+.service-card .quantity-control input:disabled {
+    opacity: 0.4;
+    background: #f0f0f0;
+}
+
+/* Cost Summary */
+.cost-summary {
+    background: linear-gradient(135deg, #f8f9fb 0%, #ffffff 100%);
+    border: 2px solid rgba(31,39,51,0.06);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 2rem;
+    margin: 0 2rem 1.5rem;
+}
+.cost-summary .cost-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0;
+}
+.cost-summary .cost-row .cost-label {
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+.cost-summary .cost-row .cost-value {
+    font-weight: 700;
+    font-size: 1rem;
+}
+.cost-summary .cost-divider {
+    border: none;
+    border-top: 2px dashed rgba(31,39,51,0.1);
+    margin: 0.6rem 0;
+}
+.cost-summary .grand-total-row .cost-label {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text);
+}
+.cost-summary .grand-total-row .cost-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--brand-dark);
+}
+
+/* Action Buttons */
+.action-bar {
+    padding: 0 2rem 2rem;
+    display: flex;
+    gap: 0.8rem;
+}
+.action-bar .btn {
+    flex: 1;
+    padding: 0.75rem;
+    font-weight: 700;
+    border-radius: 0.6rem;
+    font-size: 0.95rem;
+}
+
+/* Empty States */
+.empty-service {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--text-light);
+    background: var(--surface-2);
+    border-radius: var(--radius-md);
+}
+.empty-service i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.4;
+}
+
+@media (max-width: 767px) {
+    .service-grid { grid-template-columns: 1fr; }
+    .checkin-header { padding: 1.2rem 1.2rem; }
+    .form-section { padding: 1.2rem; }
+    .service-section { padding: 0 1.2rem 1rem; }
+    .cost-summary { margin: 0 1.2rem 1rem; padding: 1.2rem; }
+    .action-bar { padding: 0 1.2rem 1.2rem; flex-direction: column; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="checkin-wrapper">
+    <div class="card border-0 shadow-sm">
+        <!-- Header -->
+        <div class="checkin-header d-flex justify-content-between align-items-center">
+            <div>
+                <h4><i class="fa-solid fa-bell-concierge me-2"></i>Nhận Khách Mới</h4>
+                <p>Tạo phiên mới cho khách vào chơi</p>
+            </div>
+            <span class="badge"><i class="fa-solid fa-display me-1"></i>Máy trống: {{ machine_options.count }}</span>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+            <div class="px-4 pt-3">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <!-- Warnings & Queue Section -->
+            {% if no_machines_available %}
+                <div class="px-4 pt-3">
+                    <div class="alert alert-warning d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-exclamation-triangle"></i>
+                        <span>Hiện tại không có máy trống! Vui lòng thêm khách vào hàng chờ, hệ thống sẽ tự động phục vụ khi có máy.</span>
+                    </div>
+                    <div class="card border-warning bg-warning bg-opacity-10 mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="fa-solid fa-clock me-2"></i>Đặt lịch trước - Thêm vào hàng chờ</h6>
+                            <p class="card-text small">Hệ thống sẽ tự động phục vụ khách khi có máy trống. Không cần thao tác thêm.</p>
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label class="form-label small">Tên khách <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" name="customer_name" placeholder="VD: Nguyễn Văn A" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">Số điện thoại</label>
+                                    <input type="text" class="form-control form-control-sm" name="phone" placeholder="VD: 090xxxxxxx">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small">Loại máy</label>
+                                    <select name="preferred_type" class="form-select form-select-sm">
+                                        <option value="thuong">Thường</option>
+                                        <option value="gaming">Gaming</option>
+                                        <option value="vip">VIP</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small">Dự kiến (phút)</label>
+                                    <input type="number" class="form-control form-control-sm" name="planned_minutes" value="60" min="30" step="30">
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end">
+                                    <button type="submit" name="add_to_queue" value="1" class="btn btn-warning btn-sm w-100" title="Thêm vào hàng chờ">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% if queue_count > 0 %}
+                                <div class="mt-2 small text-muted">
+                                    <i class="fa-solid fa-users me-1"></i>Hiện có <strong>{{ queue_count }}</strong> khách đang chờ.
+                                    {% if estimated_wait > 0 %}
+                                        · Thời gian chờ dự kiến: <strong>≈ {{ estimated_wait }} phút</strong>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Queue info bar when machines are available but there are people waiting -->
+                {% if queue_count > 0 %}
+                <div class="px-4 pt-3">
+                    <div class="alert alert-info d-flex align-items-center gap-2 py-2">
+                        <i class="fa-solid fa-clock"></i>
+                        <span>Có <strong>{{ queue_count }}</strong> khách đang chờ trong hàng chờ. 
+                        <a href="{% url 'app:queue' %}" class="alert-link">Xem danh sách</a></span>
+                    </div>
+                </div>
+                {% endif %}
+            {% endif %}
+
+            {% if customer_options.count == 0 %}
+                <div class="px-4 pt-3">
+                    <div class="alert alert-info d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-info-circle"></i>
+                        <span>Hiện chưa có khách thành viên. Bạn có thể nhập tên khách nhanh hoặc tạo khách mới trước khi nhận khách.</span>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Form Fields -->
+            <div class="form-section">
+                <div class="row g-3">
+                    {% for field in form %}
+                        <div class="col-md-6">
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="form-text">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                                <div class="text-danger small mt-1">{{ field.errors }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Services -->
+            <div class="service-section">
+                <div class="section-title"><i class="fa-solid fa-mug-saucer me-2 text-brand"></i>Thêm sản phẩm / dịch vụ</div>
+                <p class="section-desc">Chọn nước, mì, snack... và hệ thống sẽ tính tổng tiền ngay bên dưới.</p>
+                
+                {% if services %}
+                    <div class="service-grid">
+                        {% for service in services %}
+                            <div class="service-card" onclick="toggleService('{{ service.id }}')">
+                                <input class="form-check-input service-checkbox" type="checkbox" value="{{ service.id }}" id="service_{{ service.id }}" name="services" onchange="toggleServiceUI('{{ service.id }}')">
+                                <div class="service-name">{{ service.name }}</div>
+                                <div class="service-category">{{ service.get_category_display }}</div>
+                                <div class="service-price">{{ service.price|intcomma }}₫</div>
+                                <div class="quantity-control">
+                                    <label>Số lượng:</label>
+                                    <input type="number" class="service-quantity" id="quantity_{{ service.id }}" name="quantity_{{ service.id }}" value="1" min="1" disabled>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-service">
+                        <i class="fa-solid fa-box-open"></i>
+                        <p class="mb-0">Không có sản phẩm/dịch vụ nào để thêm.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Cost Summary -->
+            <div class="cost-summary">
+                <div class="cost-row">
+                    <span class="cost-label"><i class="fa-regular fa-clock me-1"></i>Tiền giờ ước tính</span>
+                    <span class="cost-value" id="estimated-session-cost">0₫</span>
+                </div>
+                <div class="cost-row">
+                    <span class="cost-label"><i class="fa-solid fa-mug-saucer me-1"></i>Tiền dịch vụ</span>
+                    <span class="cost-value" id="estimated-service-cost">0₫</span>
+                </div>
+                <hr class="cost-divider">
+                <div class="cost-row grand-total-row">
+                    <span class="cost-label"><i class="fa-solid fa-calculator me-1"></i>Tổng tiền ước tính</span>
+                    <span class="cost-value" id="estimated-grand-total">0₫</span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="action-bar">
+                <button type="submit" class="btn btn-primary" {% if machine_options.count == 0 %}disabled{% endif %}>
+                    <i class="fa-solid fa-check me-2"></i>Lưu Phiên
+                </button>
+                <a href="{% url 'app:dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fa-solid fa-arrow-left me-2"></i>Quay lại
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const servicePrices = {
+        {% for service in services %}
+            '{{ service.id }}': {{ service.price|stringformat:"d" }},
+        {% endfor %}
+    };
+    const currentRate = {{ current_rate|stringformat:"d" }};
+
+    function formatMoney(value) {
+        // Format số tiền kiểu Việt Nam: 1.000₫
+        if (isNaN(value)) return '0₫';
+        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '₫';
+    }
+
+    function toggleServiceUI(serviceId) {
+        const checkbox = document.getElementById('service_' + serviceId);
+        const card = checkbox?.closest('.service-card');
+        const qtyInput = document.getElementById('quantity_' + serviceId);
+        if (checkbox) {
+            if (checkbox.checked) {
+                card?.classList.add('selected');
+                if (qtyInput) qtyInput.disabled = false;
+            } else {
+                card?.classList.remove('selected');
+                if (qtyInput) { qtyInput.disabled = true; qtyInput.value = 1; }
+            }
+        }
+        updateEstimate();
+    }
+
+    function toggleService(serviceId) {
+        const checkbox = document.getElementById('service_' + serviceId);
+        if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+            toggleServiceUI(serviceId);
+        }
+    }
+
+    function updateEstimate() {
+        const plannedInput = document.getElementById('id_planned_minutes');
+        let minutes = parseInt(plannedInput?.value || '0', 10);
+        if (isNaN(minutes) || minutes < 0) minutes = 0;
+        // currentRate là giá/giờ (VD: 8000₫/giờ), tính tiền theo phút
+        const sessionCost = Math.round(currentRate * minutes / 60);
+        let serviceCost = 0;
+
+        document.querySelectorAll('.service-checkbox').forEach(checkbox => {
+            const serviceId = checkbox.value;
+            const quantityInput = document.getElementById('quantity_' + serviceId);
+            if (checkbox.checked && quantityInput) {
+                const qty = Math.max(1, parseInt(quantityInput.value || '0', 10));
+                serviceCost += (servicePrices[serviceId] || 0) * qty;
+            }
+        });
+
+        document.getElementById('estimated-session-cost').textContent = formatMoney(sessionCost);
+        document.getElementById('estimated-service-cost').textContent = formatMoney(serviceCost);
+        document.getElementById('estimated-grand-total').textContent = formatMoney(sessionCost + serviceCost);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.service-checkbox').forEach(checkbox => {
+            const serviceId = checkbox.value;
+            const quantityInput = document.getElementById('quantity_' + serviceId);
+            checkbox.addEventListener('change', function () {
+                if (quantityInput) {
+                    quantityInput.disabled = !checkbox.checked;
+                }
+                updateEstimate();
+            });
+        });
+
+        document.querySelectorAll('.service-quantity').forEach(input => {
+            input.addEventListener('input', updateEstimate);
+        });
+
+        const plannedInput = document.getElementById('id_planned_minutes');
+        if (plannedInput) {
+            plannedInput.addEventListener('input', updateEstimate);
+        }
+
+        updateEstimate();
+    });
+</script>
+{% endblock %}

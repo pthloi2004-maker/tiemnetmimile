@@ -1,0 +1,108 @@
+{% extends 'app/base.html' %}
+{% load humanize %}
+
+{% block title %}Gọi Món - Phiên {{ session.id }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-2">📩 Gọi Món Cho Phiên {{ session.id }}</h2>
+            <p class="text-muted">Chọn món ăn hoặc dịch vụ và gửi yêu cầu ngay đến Admin.</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'app:session_detail' session.id %}" class="btn btn-outline-secondary btn-sm">Quay lại Phiên</a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0">Đơn Gọi Món</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            {{ form.service.label_tag }}
+                            {{ form.service }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.quantity.label_tag }}
+                            {{ form.quantity }}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Món đã chọn:</strong>
+                            <div id="selected-item" class="small text-muted">Chưa chọn</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Gửi gọi món</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0">Danh sách món</h5>
+                </div>
+                <div class="card-body">
+                    {% if services %}
+                        {% regroup services by category as categories %}
+                        {% for group in categories %}
+                        <div class="mb-4">
+                            <h6 class="mb-3">{{ category_labels[group.grouper] }}</h6>
+                            <div class="row g-3">
+                                {% for service in group.list %}
+                                <div class="col-md-6">
+                                    <div class="card border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08);">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div>
+                                                    <h6 class="mb-1">{{ service.name }}</h6>
+                                                    <p class="small text-muted mb-1">{{ service.get_category_display }}</p>
+                                                    <p class="small text-muted mb-0">Giá: {{ service.price|intcomma }}₫</p>
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-light" onclick="selectService('{{ service.id }}', '{{ service.name|escapejs }}')">
+                                                    Chọn
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-secondary">Không có món nào trong menu.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function selectService(serviceId, serviceName) {
+        const serviceInput = document.getElementById('id_service');
+        const selectedLabel = document.getElementById('selected-item');
+        if (serviceInput) {
+            serviceInput.value = serviceId;
+        }
+        if (selectedLabel) {
+            selectedLabel.textContent = 'Đã chọn: ' + serviceName;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const serviceSelect = document.getElementById('id_service');
+        const selectedLabel = document.getElementById('selected-item');
+        if (serviceSelect && selectedLabel && serviceSelect.value) {
+            const activeOption = serviceSelect.options[serviceSelect.selectedIndex];
+            selectedLabel.textContent = 'Đã chọn: ' + (activeOption ? activeOption.text : 'Chưa chọn');
+        }
+    });
+</script>
+{% endblock %}

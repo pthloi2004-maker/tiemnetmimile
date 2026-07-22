@@ -1,0 +1,13 @@
+{
+    "python.defaultInterpreterPath": "C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingModuleSource": "none"
+    },
+    "python.analysis.extraPaths": [
+        "C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages"
+    ],
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/.pyc": true
+    }
+}

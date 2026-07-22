@@ -1,0 +1,366 @@
+{% extends 'app/base.html' %}
+
+{% block title %}Banker Algorithm - MiMi Lê{% endblock %}
+{% block body_class %}banker-page{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="page-hero mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-lg-8">
+                <span class="section-kicker"><i class="fa-solid fa-shield-halved"></i>Deadlock avoidance</span>
+                <h1 class="hero-title mt-2">Banker Algorithm - Quản lý tài nguyên và tránh deadlock</h1>
+                <p class="hero-subtitle">Trang này mô phỏng việc kiểm tra an toàn trước khi cấp phát tài nguyên cho các phiên, trình bày theo bố cục gọn và đồng bộ với toàn bộ hệ thống.</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <a href="{% url 'app:dashboard' %}" class="btn btn-outline-secondary btn-sm">← Quay lại Dashboard</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Bộ test mẫu và chế độ chạy</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label small">Kịch bản</label>
+                            <select name="scenario" class="form-select">
+                                <option value="live" {% if scenario == 'live' %}selected{% endif %}>Dữ liệu thực tế</option>
+                                <option value="safe_case" {% if scenario == 'safe_case' %}selected{% endif %}>Case an toàn</option>
+                                <option value="unsafe_case" {% if scenario == 'unsafe_case' %}selected{% endif %}>Case không an toàn</option>
+                                <option value="deadlock_case" {% if scenario == 'deadlock_case' %}selected{% endif %}>Case deadlock</option>
+                                <option value="ten_machines_case" {% if scenario == 'ten_machines_case' %}selected{% endif %}>Case Banker 10 Máy</option>
+                                <option value="file" {% if scenario == 'file' %}selected{% endif %}>Nhập từ file JSON</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label small">Chiến lược xử lý deadlock</label>
+                            <select name="policy" class="form-select">
+                                <option value="min_resource_loss" {% if policy == 'min_resource_loss' %}selected{% endif %}>Min resource loss</option>
+                                <option value="min_waiting_impact" {% if policy == 'min_waiting_impact' %}selected{% endif %}>Min waiting impact</option>
+                                <option value="priority_based" {% if policy == 'priority_based' %}selected{% endif %}>Priority based</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary w-100">Tải lại</button>
+                            <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#uploadModal" data-redirect="app:banker_simulation" title="Nhập từ file JSON">📤</button>
+                        </div>
+                    </form>
+                    <div class="mt-3 small text-muted">
+                        Safe: cấp phát an toàn. Unsafe: chưa có thứ tự an toàn rõ ràng. Deadlock: không tiến trình nào có thể tiếp tục với Work hiện tại.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Thử yêu cầu cấp phát (Request)</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="scenario" value="{{ scenario }}">
+                        <div class="col-12">
+                            <label class="form-label small">Tiến trình / phiên</label>
+                            <select name="session_index" class="form-select">
+                                {% for row in banker_session_rows %}
+                                <option value="{{ row.index }}">{{ row.display_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Headset</label>
+                            <input type="number" min="0" name="req_headset" class="form-control" value="0">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Account</label>
+                            <input type="number" min="0" name="req_account" class="form-control" value="0">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">RAM</label>
+                            <input type="number" min="0" name="req_ram" class="form-control" value="0">
+                        </div>
+                        <div class="col-12 d-grid">
+                            <button type="submit" class="btn btn-outline-primary">Kiểm tra request</button>
+                        </div>
+                    </form>
+                    {% if request_result %}
+                    <div class="mt-3 alert {% if request_result.can_grant %}alert-success{% else %}alert-warning{% endif %} mb-0">
+                        <div><strong>{% if request_result.can_grant %}Được cấp phát{% else %}Từ chối cấp phát{% endif %}</strong></div>
+                        <div class="small">{{ request_result.reason }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Ma trận cần biết</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Ma trận</th>
+                                    <th>Ký hiệu</th>
+                                    <th>Ý nghĩa</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Available</td>
+                                    <td>Available</td>
+                                    <td>Số tài nguyên còn trong hệ thống</td>
+                                </tr>
+                                <tr>
+                                    <td>Maximum</td>
+                                    <td>Max</td>
+                                    <td>Tối đa mỗi tiến trình có thể yêu cầu</td>
+                                </tr>
+                                <tr>
+                                    <td>Allocation</td>
+                                    <td>Alloc</td>
+                                    <td>Tài nguyên đã cấp phát</td>
+                                </tr>
+                                <tr>
+                                    <td>Need</td>
+                                    <td>Need = Max - Alloc</td>
+                                    <td>Tài nguyên còn cần để hoàn thành</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3 small text-muted">
+                        Banker chỉ cấp nếu hệ thống vẫn an toàn sau khi cấp phát.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h6 class="mb-0">Tổng tài nguyên hệ thống</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between px-0"><span>Tai nghe</span><strong>{{ total_resources.headset }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between px-0"><span>Tài khoản game</span><strong>{{ total_resources.account }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between px-0"><span>RAM (GB)</span><strong>{{ total_resources.ram_gb }}</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h6 class="mb-0">Tài nguyên đã sử dụng</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between px-0"><span>Tai nghe</span><strong>{{ used_resources.headset }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between px-0"><span>Tài khoản game</span><strong>{{ used_resources.account }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between px-0"><span>RAM (GB)</span><strong>{{ used_resources.ram_gb }}</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h6 class="mb-0">Tài nguyên khả dụng</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between px-0"><span>Tai nghe</span><strong>{{ available_resources.headset }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between px-0"><span>Tài khoản game</span><strong>{{ available_resources.account }}</strong></li>
+                        <li class="list-group-item d-flex justify-content-between px-0"><span>RAM (GB)</span><strong>{{ available_resources.ram_gb }}</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Cấp phát hiện tại cho mỗi phiên</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID Phiên</th>
+                                    <th>Khách hàng / Máy</th>
+                                    <th>Tai nghe</th>
+                                    <th>Tài khoản</th>
+                                    <th>RAM (GB)</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in banker_session_rows %}
+                                <tr>
+                                    <td><strong>S{{ row.session.id }}</strong></td>
+                                    <td>
+                                        {{ row.display_name }}
+                                        {% if using_live and row.session and row.session.machine %}
+                                            <br><small class="text-muted">{{ row.session.machine.name }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="badge bg-success">{{ row.allocation.0 }}</span></td>
+                                    <td><span class="badge bg-success">{{ row.allocation.1 }}</span></td>
+                                    <td><span class="badge bg-info">{{ row.allocation.2 }} GB</span></td>
+                                    <td>
+                                        {% if using_live %}
+                                            <span class="badge bg-danger">Đang chạy</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">File</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="6" class="text-center text-muted py-3">Không có phiên đang chạy</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Bảng ma trận của các phiên</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Phiên</th>
+                                    <th>Allocation</th>
+                                    <th>Max</th>
+                                    <th>Need</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in banker_session_rows %}
+                                <tr>
+                                    <td><strong>{{ row.display_name }}</strong></td>
+                                    <td>{% for val in row.allocation %}<span class="badge bg-success me-1">{{ val }}</span>{% endfor %}</td>
+                                    <td>{% for val in row.max_need %}<span class="badge bg-primary me-1">{{ val }}</span>{% endfor %}</td>
+                                    <td>{% for val in row.need %}<span class="badge bg-warning text-dark me-1">{{ val }}</span>{% endfor %}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-center text-muted py-3">Không có dữ liệu</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="section-card">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Kết quả kiểm tra an toàn</h5>
+                </div>
+                <div class="card-body">
+                    {% if banker_data.n > 0 %}
+                        {% if is_safe %}
+                        <div class="alert alert-success">
+                            <strong>Hệ thống đang ở trạng thái an toàn.</strong><br>
+                            Thứ tự thực hiện an toàn:
+                            <strong>
+                                {% for i in safe_sequence %}
+                                    P{{ i }}{% if not forloop.last %} -> {% endif %}
+                                {% endfor %}
+                            </strong>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-danger">
+                            <strong>Hệ thống đang ở trạng thái nguy hiểm (Deadlock Risk).</strong><br>
+                            Không thể tìm thấy thứ tự thực hiện an toàn.
+                        </div>
+                        {% endif %}
+
+                        {% if deadlock_resolution %}
+                        <div class="alert alert-info">
+                            <strong>Đề xuất theo policy:</strong> {{ deadlock_resolution.policy }}<br>
+                            Thu hồi/kết thúc: <strong>{{ deadlock_resolution.victim_name }}</strong><br>
+                            Tài nguyên giải phóng: [{{ deadlock_resolution.freed.0 }}, {{ deadlock_resolution.freed.1 }}, {{ deadlock_resolution.freed.2 }}]<br>
+                            Kết quả sau xử lý:
+                            {% if deadlock_resolution.safe_after %}
+                                <strong class="text-success">An toàn</strong>
+                            {% else %}
+                                <strong class="text-danger">Vẫn không an toàn</strong>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <h6 class="mt-4 mb-3">Quy trình kiểm tra an toàn (Safety Algorithm)</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Bước</th>
+                                        <th>Phiên</th>
+                                        <th>Nhu cầu (Need)</th>
+                                        <th>Work trước</th>
+                                        <th>Work sau</th>
+                                        <th>Kết quả</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for step in trace %}
+                                    <tr>
+                                        <td><strong>{{ step.step }}</strong></td>
+                                        <td><strong>P{{ step.proc_index }}</strong></td>
+                                        <td>{% for val in step.need %}<span class="badge bg-warning text-dark me-1">{{ val }}</span>{% endfor %}</td>
+                                        <td>{% for val in step.work_before %}<span class="badge bg-secondary me-1">{{ val }}</span>{% endfor %}</td>
+                                        <td>{% for val in step.work_after %}<span class="badge bg-success me-1">{{ val }}</span>{% endfor %}</td>
+                                        <td><span class="badge bg-success">{{ step.result }}</span></td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="6" class="text-center text-muted py-3">Chưa thực hiện kiểm tra</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-secondary mb-0">Chưa có dữ liệu Banker để kiểm tra.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 text-center py-3">
+            <a href="{% url 'app:dashboard' %}" class="btn btn-secondary me-2">← Quay lại Dashboard</a>
+            <button class="btn btn-primary" onclick="window.print()">In kết quả</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

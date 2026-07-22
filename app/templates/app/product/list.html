@@ -1,0 +1,215 @@
+{% extends "app/base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block main_container %}
+<div class="container my-5">
+    
+    <!-- TIÊU ĐỀ -->
+    <h2 class="text-center mb-4" style="color: #c5a059; font-weight: bold;">
+        <i class="fas fa-gem"></i> BỘ SƯU TẬP TRANG SỨC
+    </h2>
+    
+    <!-- BỘ LỌC -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; border-left: 5px solid #c5a059;">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-3" style="color: #c5a059;">
+                <i class="fa fa-filter"></i> Bộ lọc nâng cao
+            </h5>
+            
+            <form method="GET" action="{% url 'app:product_list' %}">
+                <div class="row g-3">
+                    <!-- Khoảng giá -->
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Khoảng giá</label>
+                        <select name="price_range" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">Tất cả</option>
+                            <option value="duoi-15tr" {% if selected_price_range == 'duoi-15tr' %}selected{% endif %}>Dưới 15 triệu</option>
+                            <option value="15-50tr" {% if selected_price_range == '15-50tr' %}selected{% endif %}>15 - 50 triệu</option>
+                            <option value="tren-50tr" {% if selected_price_range == 'tren-50tr' %}selected{% endif %}>Trên 50 triệu</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Thương hiệu -->
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Thương hiệu</label>
+                        <select name="brand" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">Tất cả</option>
+                            <option value="pnj" {% if selected_brand == 'pnj' %}selected{% endif %}>PNJ</option>
+                            <option value="cartier" {% if selected_brand == 'cartier' %}selected{% endif %}>Cartier</option>
+                            <option value="style" {% if selected_brand == 'style' %}selected{% endif %}>Style</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Chủng loại -->
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Chủng loại</label>
+                        <select name="product_type" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">Tất cả</option>
+                            <option value="nhan" {% if selected_type == 'nhan' %}selected{% endif %}>Nhẫn</option>
+                            <option value="vong" {% if selected_type == 'vong' %}selected{% endif %}>Vòng</option>
+                            <option value="day-chuyen" {% if selected_type == 'day-chuyen' %}selected{% endif %}>Dây chuyền</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Chất liệu -->
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Chất liệu</label>
+                        <select name="material" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">Tất cả</option>
+                            <option value="bac" {% if selected_material == 'bac' %}selected{% endif %}>Bạc</option>
+                            <option value="vang" {% if selected_material == 'vang' %}selected{% endif %}>Vàng</option>
+                            <option value="kim-cuong" {% if selected_material == 'kim-cuong' %}selected{% endif %}>Kim cương</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Giới tính -->
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Giới tính</label>
+                        <select name="gender" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">Tất cả</option>
+                            <option value="nu" {% if selected_gender == 'nu' %}selected{% endif %}>Nữ</option>
+                            <option value="nam" {% if selected_gender == 'nam' %}selected{% endif %}>Nam</option>
+                            <option value="unisex" {% if selected_gender == 'unisex' %}selected{% endif %}>Unisex</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Ý nghĩa -->
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Ý nghĩa</label>
+                        <select name="meaning" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">Tất cả</option>
+                            <option value="tinh-yeu" {% if selected_meaning == 'tinh-yeu' %}selected{% endif %}>Tình yêu bền chặt</option>
+                            <option value="may-man" {% if selected_meaning == 'may-man' %}selected{% endif %}>May mắn thu hút</option>
+                            <option value="tai-loc" {% if selected_meaning == 'tai-loc' %}selected{% endif %}>Tài lộc dồi dào</option>
+                            <option value="thinh-vuong" {% if selected_meaning == 'thinh-vuong' %}selected{% endif %}>Thịnh vượng phát triển</option>
+                            <option value="gan-ket" {% if selected_meaning == 'gan-ket' %}selected{% endif %}>Gắn kết trân trọng</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Mục đích -->
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Mục đích</label>
+                        <select name="purpose" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">Tất cả</option>
+                            <option value="du-tiec" {% if selected_purpose == 'du-tiec' %}selected{% endif %}>Dự tiệc</option>
+                            <option value="hang-ngay" {% if selected_purpose == 'hang-ngay' %}selected{% endif %}>Hằng ngày</option>
+                            <option value="cau-hon" {% if selected_purpose == 'cau-hon' %}selected{% endif %}>Cầu hôn</option>
+                            <option value="ky-niem" {% if selected_purpose == 'ky-niem' %}selected{% endif %}>Kỷ niệm</option>
+                            <option value="qua-tang" {% if selected_purpose == 'qua-tang' %}selected{% endif %}>Quà tặng</option>
+                            <option value="sinh-nhat" {% if selected_purpose == 'sinh-nhat' %}selected{% endif %}>Sinh nhật</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <a href="{% url 'app:product_list' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-redo"></i> Xóa bộ lọc
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- HIỂN THỊ TẬP LUẬT (ASSOCIATION RULES) -->
+    {% if rule_display %}
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="card-body p-4 text-white">
+            <h5 class="fw-bold mb-3">
+                <i class="fas fa-brain"></i> Tập Luật Kết Hợp (Association Rules)
+            </h5>
+            
+            <!-- Hiển thị mã luật -->
+            <div class="mb-3">
+                <span class="badge bg-light text-dark px-3 py-2" style="font-size: 1rem; font-family: monospace;">
+                    {{ rule_display.code_string }}
+                </span>
+            </div>
+            
+            <!-- Hiển thị nhãn luật -->
+            <div class="mb-3">
+                <strong>Bạn đang tìm kiếm:</strong>
+                <div class="mt-2">
+                    {% for label in rule_display.labels %}
+                    <span class="badge bg-warning text-dark me-2 mb-2">{{ label }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Hiển thị sản phẩm gợi ý -->
+            {% if rule_display.matching_rules %}
+            <div class="mt-3 pt-3" style="border-top: 1px solid rgba(255,255,255,0.3);">
+                <strong><i class="fas fa-lightbulb"></i> Gợi ý sản phẩm phù hợp:</strong>
+                <div class="mt-3">
+                    {% for rule in rule_display.matching_rules %}
+                    <div class="alert alert-light mb-2" style="border-radius: 10px;">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-success me-3">{{ rule.product_id }}</span>
+                            <div class="flex-grow-1">
+                                <strong style="color: #333;">{{ rule.name }}</strong>
+                                <p class="mb-0 small text-muted">{{ rule.description }}</p>
+                            </div>
+                            <span class="badge bg-primary">{{ rule.confidence }}% khớp</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- DANH SÁCH SẢN PHẨM -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Tìm thấy <strong>{{ product_count }}</strong> sản phẩm</h5>
+        
+        {% if applied_filters %}
+        <div>
+            {% for filter in applied_filters %}
+            <span class="badge bg-secondary me-1">{{ filter }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="row">
+        {% for product in products %}
+        <div class="col-md-3 col-sm-6 mb-4">
+            <div class="card shadow-sm h-100 product-card text-center border-0" style="border-radius: 15px;">
+                <a href="{% url 'app:product_detail' product.id product.slug %}">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" class="card-img-top p-3" style="height: 200px; object-fit: contain;">
+                    {% else %}
+                    <img src="{% static 'app/images/default.jpg' %}" class="card-img-top p-3" style="height: 200px; object-fit: contain;">
+                    {% endif %}
+                </a>
+                <div class="card-body">
+                    <h6 class="fw-bold text-truncate">{{ product.name }}</h6>
+                    <p class="text-danger fw-bold">{{ product.price|intcomma }} VNĐ</p>
+                    <a href="{% url 'app:add_to_cart' product.id %}" class="btn btn-sm btn-danger w-100">
+                        <i class="fas fa-shopping-cart"></i> Thêm vào giỏ
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+            <p class="alert alert-light shadow-sm">Không tìm thấy sản phẩm nào phù hợp với bộ lọc.</p>
+            <a href="{% url 'app:product_list' %}" class="btn btn-outline-primary">Xóa bộ lọc</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .product-card {
+        transition: transform 0.3s ease;
+    }
+    .product-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1) !important;
+    }
+</style>
+{% endblock main_container %}

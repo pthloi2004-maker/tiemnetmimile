@@ -1,0 +1,122 @@
+{% extends 'app/base.html' %}
+
+{% block title %}Kiến Thức OS - MiMi Lê{% endblock %}
+{% block body_class %}topics-page{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="page-hero mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-lg-8">
+                <span class="section-kicker"><i class="fa-solid fa-book-open"></i>Operating system theory</span>
+                <h1 class="hero-title mt-2">Các giải thuật và chủ đề Hệ điều hành phù hợp với đề án</h1>
+                <p class="hero-subtitle">Trang này dùng để phân loại phần kiến thức nào nên đưa vào bài chính, phần nào chỉ nên đặt ở mục mở rộng hoặc phần tham khảo.</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <a href="{% url 'app:simulation' %}" class="btn btn-outline-secondary btn-sm">← Quay lại mô phỏng</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="section-card">
+                <div class="card-header border-bottom d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">Nên đưa vào bài này</h5>
+                        <p class="mb-0 small text-muted">Đây là các phần khớp nhất với đồ án quán net và có thể demo trực tiếp trên web.</p>
+                    </div>
+                    <span class="badge bg-success">Core</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% for item in core_topics %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="metric-card h-100 p-3">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <h6 class="mb-0">{{ item.title }}</h6>
+                                    <span class="badge bg-success">Core</span>
+                                </div>
+                                <div class="small text-muted mb-2">{{ item.role }}</div>
+                                <p class="small mb-0">{{ item.desc }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="section-card">
+                <div class="card-header border-bottom d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">Nên đưa vào phần mở rộng / thuyết trình</h5>
+                        <p class="mb-0 small text-muted">Các phần này vẫn hữu ích nhưng nên đặt ở mục liên hệ kiến thức để tránh loãng trọng tâm.</p>
+                    </div>
+                    <span class="badge bg-warning text-dark">Supplementary</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% for item in supporting_topics %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="soft-panel h-100 p-3">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <h6 class="mb-0">{{ item.title }}</h6>
+                                    <span class="badge bg-secondary">Mở rộng</span>
+                                </div>
+                                <div class="small text-muted mb-2">{{ item.role }}</div>
+                                <p class="small mb-0">{{ item.desc }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Nhóm lập lịch</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0 small">
+                        <li><strong>FCFS:</strong> dễ nhất, dễ demo và dễ so sánh.</li>
+                        <li><strong>SJF:</strong> tối ưu trung bình, phù hợp phần tính thời gian chờ.</li>
+                        <li><strong>Round Robin:</strong> công bằng, rất hợp với mô phỏng phiên chơi.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Nhóm đồng bộ và deadlock</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0 small">
+                        <li><strong>Banker + Safety + Request:</strong> phần nên làm sâu nhất, phù hợp đồ án nhất.</li>
+                        <li><strong>Deadlock Detection:</strong> nên có giao diện kết quả và cách xử lý.</li>
+                        <li><strong>Bakery / Test-and-Set / Swap:</strong> phù hợp đưa vào phần kiến thức, không cần demo sâu.</li>
+                        <li><strong>Bounded Buffer / Readers-Writers / Dining Philosophers:</strong> phù hợp để liên hệ và thuyết trình.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 text-center py-3">
+            <a href="{% url 'app:banker_simulation' %}" class="btn btn-primary me-2">Mô phỏng Banker</a>
+            <a href="{% url 'app:omdrrs_simulation' %}" class="btn btn-primary">OMDRRS — Lập lịch CPU</a>
+            <a href="{% url 'app:scheduling_simulation' %}" class="btn btn-outline-primary">FCFS / SJF / Round Robin</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

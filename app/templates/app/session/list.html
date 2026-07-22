@@ -1,0 +1,55 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Danh Sách Phiên - MiMi Lê{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2>📋 Danh Sách Phiên</h2>
+            <p class="text-muted">Xem tất cả phiên đã tạo, lọc theo trạng thái và kiểm tra chi tiết.</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'app:dashboard' %}" class="btn btn-outline-secondary">Quay lại Dashboard</a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-sm mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Khách</th>
+                            <th>Máy</th>
+                            <th>Game</th>
+                            <th>Trạng thái</th>
+                            <th>Bắt đầu</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in sessions %}
+                        <tr>
+                            <td>{{ session.id }}</td>
+                            <td>{{ session.get_customer_name }}</td>
+                            <td>{{ session.machine.name }}</td>
+                            <td>{{ session.game_name|default:'-' }}</td>
+                            <td>{{ session.get_status_display }}</td>
+                            <td>{{ session.start_time|date:"d/m H:i" }}</td>
+                            <td><a href="{% url 'app:session_detail' session.id %}" class="btn btn-sm btn-outline-primary">Chi tiết</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-3">Chưa có phiên nào.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

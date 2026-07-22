@@ -1,0 +1,76 @@
+{
+    "type": "scheduling",
+    "quantum": 20,
+    "processes": [
+        {
+            "pid": 1,
+            "name": "P1 - Khach A",
+            "arrival": 0,
+            "burst": 8,
+            "priority": 3
+        },
+        {
+            "pid": 2,
+            "name": "P2 - Khach B",
+            "arrival": 1,
+            "burst": 4,
+            "priority": 1
+        },
+        {
+            "pid": 3,
+            "name": "P3 - Khach C",
+            "arrival": 2,
+            "burst": 9,
+            "priority": 2
+        },
+        {
+            "pid": 4,
+            "name": "P4 - Khach D",
+            "arrival": 3,
+            "burst": 5,
+            "priority": 4
+        },
+        {
+            "pid": 5,
+            "name": "P5 - Khach E",
+            "arrival": 5,
+            "burst": 6,
+            "priority": 3
+        },
+        {
+            "pid": 6,
+            "name": "P6 - Khach F",
+            "arrival": 6,
+            "burst": 7,
+            "priority": 2
+        },
+        {
+            "pid": 7,
+            "name": "P7 - Khach G",
+            "arrival": 8,
+            "burst": 3,
+            "priority": 1
+        },
+        {
+            "pid": 8,
+            "name": "P8 - Khach H",
+            "arrival": 10,
+            "burst": 10,
+            "priority": 5
+        },
+        {
+            "pid": 9,
+            "name": "P9 - Khach I",
+            "arrival": 12,
+            "burst": 4,
+            "priority": 2
+        },
+        {
+            "pid": 10,
+            "name": "P10 - Khach J",
+            "arrival": 15,
+            "burst": 6,
+            "priority": 3
+        }
+    ]
+}

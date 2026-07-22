@@ -1,0 +1,294 @@
+import random
+from itertools import cycle
+
+
+def parse_reference_string(raw_text, fallback=None, limit=None):
+    """Parse a comma/space separated page reference string into integers."""
+    values = []
+    raw_text = (raw_text or "").replace(";", ",")
+    for token in raw_text.replace("\n", ",").split(","):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            values.append(int(token))
+        except ValueError:
+            continue
+
+    if not values and fallback:
+        values = list(fallback)
+    if limit is not None:
+        values = values[:limit]
+    return values
+
+
+def build_memory_reference_stream(mode, sessions=None, queue_items=None, length=18, seed=""):
+    """Build a deterministic reference stream for the memory simulation."""
+    sessions = list(sessions or [])
+    queue_items = list(queue_items or [])
+
+    if mode == "manual":
+        return []
+
+    if mode == "random":
+        rng = random.Random(seed) if seed else random.Random()
+        return [rng.randint(1, 9) for _ in range(max(6, length))]
+
+    refs = []
+    for sess in sessions:
+        machine_id = getattr(sess.machine, "id", 0) or 0
+        refs.extend([
+            (getattr(sess, "id", 0) % 9) + 1,
+            (machine_id % 9) + 1,
+            max(1, min(9, (getattr(sess, "planned_minutes", 60) // 15) or 1)),
+        ])
+
+    for item in queue_items:
+        refs.extend([
+            (len(getattr(item, "customer_name", "")) % 9) + 1,
+            max(1, min(9, getattr(item, "planned_minutes", 60) // 10 or 1)),
+        ])
+
+    if not refs:
+        refs = [1, 2, 3, 4, 1, 2, 5, 1, 6, 2, 7, 3]
+
+    if len(refs) < length:
+        base = list(refs)
+        while len(refs) < length:
+            refs.extend(base)
+
+    return refs[:length]
+
+
+def _memory_stats(steps, refs):
+    faults = sum(1 for step in steps if not step["hit"])
+    total = len(refs) or 1
+    hits = total - faults
+    fault_rate = round(faults / total * 100, 1)
+    hit_rate = round(hits / total * 100, 1)
+    return {
+        "references": len(refs),
+        "faults": faults,
+        "hits": hits,
+        "fault_rate": fault_rate,
+        "hit_rate": hit_rate,
+    }
+
+
+def simulate_fifo(refs, frame_count=3):
+    frames = [None] * frame_count
+    queue = []
+    steps = []
+
+    for index, ref in enumerate(refs, start=1):
+        hit = ref in frames
+        replaced = None
+        slot = None
+
+        if hit:
+            slot = frames.index(ref)
+        else:
+            if None in frames:
+                slot = frames.index(None)
+                frames[slot] = ref
+                queue.append(slot)
+            else:
+                slot = queue.pop(0)
+                replaced = frames[slot]
+                frames[slot] = ref
+                queue.append(slot)
+
+        steps.append({
+            "step": index,
+            "ref": ref,
+            "hit": hit,
+            "replaced": replaced,
+            "slot": slot,
+            "frames": list(frames),
+        })
+
+    return {
+        "name": "FIFO",
+        "steps": steps,
+        "stats": _memory_stats(steps, refs),
+    }
+
+
+def simulate_lru(refs, frame_count=3):
+    frames = [None] * frame_count
+    last_used = {}
+    steps = []
+
+    for index, ref in enumerate(refs, start=1):
+        hit = ref in frames
+        replaced = None
+        slot = None
+
+        if hit:
+            slot = frames.index(ref)
+        else:
+            if None in frames:
+                slot = frames.index(None)
+                frames[slot] = ref
+            else:
+                lru_page = min((page for page in frames if page is not None), key=lambda page: last_used.get(page, -1))
+                slot = frames.index(lru_page)
+                replaced = frames[slot]
+                frames[slot] = ref
+
+        last_used[ref] = index
+        steps.append({
+            "step": index,
+            "ref": ref,
+            "hit": hit,
+            "replaced": replaced,
+            "slot": slot,
+            "frames": list(frames),
+        })
+
+    return {
+        "name": "LRU",
+        "steps": steps,
+        "stats": _memory_stats(steps, refs),
+    }
+
+
+def simulate_optimal(refs, frame_count=3):
+    frames = [None] * frame_count
+    steps = []
+
+    for index, ref in enumerate(refs, start=1):
+        hit = ref in frames
+        replaced = None
+        slot = None
+
+        if hit:
+            slot = frames.index(ref)
+        else:
+            if None in frames:
+                slot = frames.index(None)
+                frames[slot] = ref
+            else:
+                future = refs[index:]
+
+                def next_use(page):
+                    try:
+                        return future.index(page)
+                    except ValueError:
+                        return float("inf")
+
+                victim = max((page for page in frames if page is not None), key=next_use)
+                slot = frames.index(victim)
+                replaced = frames[slot]
+                frames[slot] = ref
+
+        steps.append({
+            "step": index,
+            "ref": ref,
+            "hit": hit,
+            "replaced": replaced,
+            "slot": slot,
+            "frames": list(frames),
+        })
+
+    return {
+        "name": "OPT",
+        "steps": steps,
+        "stats": _memory_stats(steps, refs),
+    }
+
+
+def build_memory_comparison(refs, frame_count=3):
+    """Return FIFO, LRU and OPT simulation results for comparison."""
+    algorithms = [
+        simulate_fifo(refs, frame_count),
+        simulate_lru(refs, frame_count),
+        simulate_optimal(refs, frame_count),
+    ]
+    best_faults = min(algorithms, key=lambda row: row["stats"]["faults"])["name"] if algorithms else ""
+    best_hit = max(algorithms, key=lambda row: row["stats"]["hit_rate"])["name"] if algorithms else ""
+    return {
+        "algorithms": algorithms,
+        "best_faults": best_faults,
+        "best_hit": best_hit,
+    }
+
+
+def simulate_bounded_buffer(buffer_size=3, sequence=None, producer_count=2, consumer_count=2):
+    """Simulate producer-consumer with a bounded buffer."""
+    sequence = list(sequence or [])
+    if not sequence:
+        sequence = []
+        for i in range(max(8, producer_count + consumer_count)):
+            sequence.append("P" if i % 2 == 0 else "C")
+
+    buffer = []
+    empty = buffer_size
+    full = 0
+    mutex = 1
+    producer_round = 0
+    consumer_round = 0
+    blocked_producers = 0
+    blocked_consumers = 0
+    timeline = []
+
+    for step, action in enumerate(sequence, start=1):
+        before = list(buffer)
+        note = ""
+        actor = ""
+        result = "blocked"
+        item = None
+
+        if action == "P":
+            producer_round += 1
+            actor = f"Producer {((producer_round - 1) % max(1, producer_count)) + 1}"
+            item = f"Job-{step}"
+            if empty > 0:
+                mutex = 0
+                buffer.append(item)
+                empty -= 1
+                full += 1
+                mutex = 1
+                result = "produced"
+                note = f"{actor} đưa {item} vào vùng đệm."
+            else:
+                blocked_producers += 1
+                note = f"{actor} bị chặn vì buffer đầy."
+        else:
+            consumer_round += 1
+            actor = f"Consumer {((consumer_round - 1) % max(1, consumer_count)) + 1}"
+            if full > 0:
+                mutex = 0
+                item = buffer.pop(0)
+                full -= 1
+                empty += 1
+                mutex = 1
+                result = "consumed"
+                note = f"{actor} lấy {item} ra khỏi vùng đệm."
+            else:
+                blocked_consumers += 1
+                note = f"{actor} bị chặn vì buffer rỗng."
+
+        timeline.append({
+            "step": step,
+            "actor": actor,
+            "action": action,
+            "result": result,
+            "item": item,
+            "note": note,
+            "before": before,
+            "buffer": list(buffer),
+            "empty": empty,
+            "full": full,
+            "mutex": mutex,
+        })
+
+    return {
+        "timeline": timeline,
+        "blocked_producers": blocked_producers,
+        "blocked_consumers": blocked_consumers,
+        "final_buffer": list(buffer),
+        "empty": empty,
+        "full": full,
+        "mutex": mutex,
+    }

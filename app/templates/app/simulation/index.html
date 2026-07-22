@@ -1,0 +1,419 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Mô Phỏng Hệ Điều Hành - MiMi Lê{% endblock %}
+{% block body_class %}simulation-page{% endblock %}
+
+{% block extra_css %}
+<style>
+    .simulation-page .page-hero{
+        background: linear-gradient(135deg, rgba(47,143,157,0.12), rgba(106,174,193,0.08)), rgba(255,255,255,0.9) !important;
+        border-top: 5px solid var(--page-accent, #2f8f9d);
+    }
+    .simulation-page .card{
+        border: 1px solid rgba(22,36,45,0.08);
+        border-top: 4px solid var(--page-accent, #2f8f9d);
+        background: rgba(255,255,255,0.94);
+        box-shadow: 0 12px 30px rgba(22,36,45,0.07);
+    }
+    .simulation-page .card-header{
+        background: linear-gradient(180deg, rgba(249,251,252,0.99), rgba(242,247,248,0.96)) !important;
+    }
+    .simulation-page .card-body{
+        background: rgba(255,255,255,0.96);
+    }
+    .simulation-page .btn-primary{
+        background: linear-gradient(135deg, var(--page-accent, #2f8f9d), var(--page-accent-2, #6aaec1), #a7d7df) !important;
+        color: #071318 !important;
+        border: none !important;
+    }
+    .simulation-page .btn-outline-primary{
+        color: var(--page-accent, #2f8f9d) !important;
+        border-color: rgba(47,143,157,0.35) !important;
+    }
+    .simulation-page .btn-outline-primary:hover{
+        background: rgba(47,143,157,0.08) !important;
+        color: var(--brand-dark) !important;
+    }
+    .simulation-page .btn-outline-secondary{
+        border-color: rgba(22,36,45,0.16) !important;
+    }
+    .simulation-page .progress{
+        background: rgba(22,36,45,0.08);
+    }
+    .simulation-page .progress-bar{
+        background: linear-gradient(90deg, var(--page-accent, #2f8f9d), var(--page-accent-2, #6aaec1)) !important;
+    }
+    .simulation-page .list-group-item{
+        background: rgba(255,255,255,0.94);
+        border-color: rgba(22,36,45,0.08);
+    }
+    .simulation-page .table thead th{
+        background: linear-gradient(180deg, rgba(249,251,252,0.99), rgba(242,247,248,0.96)) !important;
+    }
+    .simulation-page .simulation-accent{
+        background: linear-gradient(135deg, rgba(47,143,157,0.10), rgba(255,255,255,0.96)) !important;
+        border: 1px solid rgba(47,143,157,0.16) !important;
+    }
+    .simulation-page .simulation-warm{
+        background: linear-gradient(135deg, rgba(255,217,191,0.24), rgba(255,255,255,0.96)) !important;
+        border: 1px solid rgba(244,179,138,0.18) !important;
+    }
+    .simulation-page .simulation-soft{
+        background: linear-gradient(135deg, rgba(138,108,255,0.08), rgba(255,255,255,0.96)) !important;
+        border: 1px solid rgba(138,108,255,0.14) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="page-hero mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div class="pe-lg-5">
+                <div class="section-kicker mb-2">Trung tâm mô phỏng</div>
+                <h2 class="mb-2" style="color: var(--brand-dark);">Trung Tâm Mô Phỏng Quán Net</h2>
+                <p class="text-muted mb-0">Xem dữ liệu thật, mô phỏng thuật toán theo dạng trực quan và điều phối máy/phòng chơi ngay trên hệ thống.</p>
+            </div>
+            <div class="text-end">
+                <a href="{% url 'app:dashboard' %}" class="btn btn-outline-secondary btn-sm">← Quay lại Dashboard</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- GIẢI THÍCH MÔ PHỎNG CHẠY NHƯ THẾ NÀO -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm simulation-accent">
+                <div class="card-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <div style="font-size: 2rem;">🎮</div>
+                        <div>
+                            <h5 class="mb-2">Mô Phỏng Chạy Như Thế Nào?</h5>
+                            <p class="text-muted mb-2 small">
+                                Trang này lấy <strong>dữ liệu thực tế từ hệ thống quán net</strong> của bạn 
+                                (các máy tính, phiên chơi đang chạy, khách hàng) và dùng nó để mô phỏng 
+                các thuật toán hệ điều hành kinh điển.
+                            </p>
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <div class="p-2 rounded simulation-accent border-start border-3">
+                                        <strong class="small">1. Lấy dữ liệu thật</strong>
+                                        <p class="small text-muted mb-0">Hệ thống đọc danh sách máy, phiên đang chạy, khách hàng từ database của quán.</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-2 rounded simulation-soft border-start border-3">
+                                        <strong class="small">2. Chuyển thành tiến trình</strong>
+                                        <p class="small text-muted mb-0">Mỗi phiên chơi được xem như một <strong>tiến trình (process)</strong> trong hệ điều hành, có thời gian đến (arrival time) và thời gian thực thi (burst time).</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-2 rounded simulation-warm border-start border-3">
+                                        <strong class="small">3. Chạy thuật toán</strong>
+                                        <p class="small text-muted mb-0">Áp dụng thuật toán lập lịch (FCFS, SJF, RR) hoặc Banker Algorithm lên các tiến trình đó, hiển thị kết quả bằng biểu đồ Gantt, ma trận, chỉ số hiệu suất.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-2 p-2 rounded simulation-warm">
+                                <span class="small"><strong>Ví dụ:</strong> Khách A đến lúc 8:00, chơi 60 phút => Process P1: arrival=0, burst=60. Khách B đến lúc 8:30, chơi 45 phút => P2: arrival=30, burst=45. Hệ thống sẽ mô phỏng CPU chạy P1 trước hay P2 trước tùy theo thuật toán.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- THỐNG KÊ NHANH VỚI BIỂU ĐỒ -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">Tình Trạng Máy</h5>
+                </div>
+                <div class="card-body">
+                    <div style="height: 180px;">
+                        <canvas id="machineChart"></canvas>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-danger" style="width: 10px; height: 10px; border-radius: 50%; display: inline-block;"></span> Đang dùng</span>
+                            <strong>{{ machine_status.in_use }}</strong>
+                        </div>
+                        <div class="progress mb-2" style="height: 8px; border-radius: 999px;">
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: {% widthratio machine_status.in_use machine_status.total 100 %}%;"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-success" style="width: 10px; height: 10px; border-radius: 50%; display: inline-block;"></span> Máy trống</span>
+                            <strong>{{ machine_status.available }}</strong>
+                        </div>
+                        <div class="progress mb-2" style="height: 8px; border-radius: 999px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {% widthratio machine_status.available machine_status.total 100 %}%;"></div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span><span class="badge bg-secondary" style="width: 10px; height: 10px; border-radius: 50%; display: inline-block;"></span> Bảo trì</span>
+                            <strong>{{ machine_status.maintenance }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">Hàng Chờ & Phiên</h5>
+                </div>
+                <div class="card-body">
+                    <div style="height: 180px;">
+                        <canvas id="queueChart"></canvas>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Khách chờ</span>
+                            <strong>{{ queue_count }}</strong>
+                        </div>
+                        <div class="progress mb-2" style="height: 8px; border-radius: 999px;">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: {% widthratio queue_count 10 100 %}%;"></div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Phiên chạy</span>
+                            <strong>{{ active_count }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">Bắt Đầu Mô Phỏng</h5>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <p class="text-muted small">Từ dữ liệu thực tế, bạn có thể chọn mô phỏng thuật toán lập lịch CPU hoặc kiểm tra an toàn ngân sách tài nguyên.</p>
+                    <div class="d-grid gap-2 mt-auto">
+                        <a href="{% url 'app:omdrrs_simulation' %}" class="btn btn-primary btn-lg">
+                            OMDRRS — Lập lịch CPU (điểm nhấn)
+                        </a>
+                        <a href="{% url 'app:scheduling_compare' %}?run=1" class="btn btn-primary btn-lg">
+                            So sánh tất cả (Q-Learning)
+                        </a>
+                        <a href="{% url 'app:scheduling_simulation' %}" class="btn btn-outline-primary btn-lg">
+                            FCFS / SJF / Round Robin
+                        </a>
+                        <a href="{% url 'app:memory_simulation' %}" class="btn btn-outline-primary btn-lg">
+                            Mô Phỏng Bộ Nhớ
+                        </a>
+                        <a href="{% url 'app:synchronization_simulation' %}" class="btn btn-outline-primary btn-lg">
+                            Mô Phỏng Đồng Bộ Hóa
+                        </a>
+                        <a href="{% url 'app:banker_simulation' %}" class="btn btn-outline-primary btn-lg">
+                            Banker Algorithm
+                        </a>
+                        <a href="{% url 'app:os_topics' %}" class="btn btn-outline-secondary btn-lg">
+                            Kien Thuc Lien Quan
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DANH SÁCH CHI TIẾT -->
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Phiên Đang Chạy</h5>
+                    <span class="badge bg-primary">{{ active_sessions|length }}</span>
+                </div>
+                <div class="card-body p-0" style="max-height: 350px; overflow-y: auto;">
+                    {% if active_sessions %}
+                    <div class="list-group list-group-flush">
+                        {% for session in active_sessions %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ session.get_customer_name }}</strong>
+                                <div class="small text-muted">
+                                    {{ session.machine.name }} | {{ session.start_time|date:"H:i" }}
+                                </div>
+                            </div>
+                            <span class="badge bg-primary">{{ session.start_time|timesince }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center text-muted">
+                    <p class="mt-2">Không có phiên chạy</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Khách Trong Hàng Chờ</h5>
+                    <span class="badge bg-warning text-dark">{{ waiting_queue|length }}</span>
+                </div>
+                <div class="card-body p-0" style="max-height: 350px; overflow-y: auto;">
+                    {% if waiting_queue %}
+                    <div class="list-group list-group-flush">
+                        {% for item in waiting_queue %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong>{{ item.customer_name }}</strong>
+                                <small class="text-muted">{{ item.arrived_at|date:"H:i" }}</small>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="small text-muted">Dự kiến {{ item.planned_minutes }} phút</span>
+                                <span class="badge bg-info">#{{ forloop.counter }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center text-muted">
+                    <p class="mt-2">Hàng chờ trống</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NHẬP DỮ LIỆU TỪ FILE -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="border-top-color: var(--bs-warning, #ffc107);">
+                <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+                    <span class="fs-4">📤</span>
+                    <h5 class="mb-0">Nhập Dữ Liệu Mô Phỏng Từ File</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4 align-items-center">
+                        <div class="col-lg-6">
+                            <h6 class="fw-semibold mb-3">Công cụ nhập dữ liệu nâng cao</h6>
+                            <p class="text-muted small mb-3">
+                                Sử dụng trang nhập dữ liệu chuyên dụng với các tính năng:
+                            </p>
+                            <ul class="list-unstyled small text-muted mb-4">
+                                <li class="mb-2">✅ <strong>Kéo thả file</strong> (Drag & Drop)</li>
+                                <li class="mb-2">✅ <strong>Xem trước dữ liệu</strong> trước khi import</li>
+                                <li class="mb-2">✅ <strong>Kiểm tra dữ liệu hợp lệ</strong> tự động</li>
+                                <li class="mb-2">✅ <strong>Hỗ trợ JSON & CSV</strong></li>
+                                <li class="mb-2">✅ <strong>Thanh tiến trình</strong> và thông báo trực quan</li>
+                            </ul>
+                            <a href="{% url 'app:import_simulation_data' %}" class="btn btn-primary btn-lg">
+                                <i class="fa-solid fa-upload me-2"></i>Mở Trang Nhập Dữ Liệu
+                            </a>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="bg-light p-4 rounded text-center">
+                                <span style="font-size: 3rem;">📂</span>
+                                <h6 class="mt-3 mb-2">Các định dạng hỗ trợ</h6>
+                                <div class="d-flex justify-content-center gap-3">
+                                    <span class="badge bg-dark">JSON</span>
+                                    <span class="badge bg-success">CSV</span>
+                                </div>
+                                <p class="small text-muted mt-3 mb-0">
+                                    CPU Scheduling · Banker Algorithm · Memory Management · Synchronization
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- THÔNG TIN THÊM -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm simulation-accent">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-2">Về Các Mô Phỏng</h5>
+                            <p class="text-muted mb-0 small">
+                                <strong>OMDRRS:</strong> Thuật toán lập lịch CPU điểm nhấn — mô phỏng F, Dynamic Quantum, so sánh RR.<br>
+                                <strong>FCFS / SJF / RR:</strong> Các giải thuật kinh điển với Gantt chart tương tác.<br>
+                                <strong>Banker Algorithm:</strong> Kiểm tra trạng thái an toàn khi cấp phát tài nguyên, tránh deadlock.<br>
+                                <em>Dữ liệu được lấy từ hệ thống thực tế của quán để mô phỏng chân thực nhất.</em>
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    // Machine Status Chart (Doughnut)
+    new Chart(document.getElementById('machineChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Đang dùng', 'Máy trống', 'Bảo trì'],
+            datasets: [{
+                data: [{{ machine_status.in_use }}, {{ machine_status.available }}, {{ machine_status.maintenance }}],
+                backgroundColor: ['#dc3545', '#198754', '#6c757d'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+
+    // Queue & Session Chart (Doughnut)
+    new Chart(document.getElementById('queueChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Khách chờ', 'Phiên chạy'],
+            datasets: [{
+                data: [{{ queue_count }}, {{ active_count }}],
+                backgroundColor: ['#ffc107', '#0d6efd'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+
+    // Copy to clipboard helper
+    document.querySelectorAll('.btn-copy').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const codeEl = document.getElementById(targetId);
+            navigator.clipboard.writeText(codeEl.textContent).then(() => {
+                const originalText = this.textContent;
+                this.textContent = 'Đã chép!';
+                this.classList.replace('btn-outline-secondary', 'btn-success');
+                setTimeout(() => {
+                    this.textContent = originalText;
+                    this.classList.replace('btn-success', 'btn-outline-secondary');
+                }, 1500);
+            });
+        });
+    });
+</script>
+{% endblock %}

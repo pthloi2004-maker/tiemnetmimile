@@ -1,0 +1,1175 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}OMDRRS | Mô phỏng lập lịch CPU{% endblock %}
+{% block body_class %}scheduling-page{% endblock %}
+
+{% block extra_css %}
+<style>
+    .omdrrs-shell .soft-badge,
+    .omdrrs-shell .improvement-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .35rem .65rem;
+        border-radius: 999px;
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .06em;
+    }
+    .omdrrs-shell .soft-badge {
+        background: rgba(24, 88, 212, 0.08);
+        color: var(--page-accent, #1858d4);
+        border: 1px solid rgba(24, 88, 212, 0.14);
+    }
+    .omdrrs-shell .soft-badge.alt,
+    .omdrrs-shell .improvement-pill {
+        background: rgba(47, 143, 157, 0.1);
+        color: var(--brand-dark, #174a54);
+        border: 1px solid rgba(47, 143, 157, 0.16);
+    }
+    .omdrrs-shell .soft-badge.warn {
+        background: rgba(244, 179, 138, 0.22);
+        color: #7a4a28;
+        border: 1px solid rgba(244, 179, 138, 0.35);
+    }
+    .omdrrs-shell .form-note, .omdrrs-shell .meta, .omdrrs-shell .hint { color: var(--muted, #667784); }
+    .omdrrs-stat {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 250, 252, 0.94));
+        border: 1px solid var(--border, rgba(22, 36, 45, 0.08));
+        border-top: 3px solid var(--page-accent, #1858d4);
+        border-radius: 1rem;
+        padding: 1rem;
+        box-shadow: var(--shadow-sm, 0 6px 18px rgba(22, 36, 45, 0.05));
+    }
+    .omdrrs-stat .label {
+        color: var(--muted, #667784);
+        font-size: .74rem;
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        font-weight: 800;
+    }
+    .omdrrs-stat .value {
+        font-size: 1.45rem;
+        font-weight: 900;
+        letter-spacing: -.03em;
+        color: var(--brand-dark, #174a54);
+    }
+    .omdrrs-stat .hint { font-size: .84rem; }
+    .omdrrs-panel {
+        background: linear-gradient(135deg, rgba(79, 134, 247, 0.08), rgba(255, 255, 255, 0.98));
+        border: 1px solid rgba(79, 134, 247, 0.14);
+        border-radius: 1rem;
+    }
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .5rem .85rem;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid var(--border);
+        color: var(--brand-dark);
+        font-size: .85rem;
+        font-weight: 700;
+    }
+    .status-dot {
+        width: .7rem;
+        height: .7rem;
+        border-radius: 999px;
+        background: var(--page-accent, #1858d4);
+        box-shadow: 0 0 0 5px rgba(24, 88, 212, 0.12);
+    }
+    .gantt-wrap {
+        min-height: 310px;
+        background: linear-gradient(180deg, #fff, rgba(244, 250, 252, 0.95));
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        padding: 1rem;
+    }
+    .gantt-track {
+        position: relative;
+        min-height: 220px;
+        margin-top: .85rem;
+        border-radius: 1rem;
+        background:
+            linear-gradient(90deg, rgba(24, 88, 212, 0.06) 1px, transparent 1px) 0 0 / 12% 100%,
+            linear-gradient(180deg, rgba(22, 36, 45, 0.04) 1px, transparent 1px) 0 0 / 100% 36px,
+            rgba(244, 250, 252, 0.6);
+        overflow: hidden;
+    }
+    .gantt-empty { color: var(--muted); text-align: center; padding: 4rem 1rem; }
+    .gantt-segment {
+        position: absolute;
+        top: 16px;
+        height: 34px;
+        border-radius: .75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 .6rem;
+        color: #fff;
+        font-weight: 800;
+        font-size: .78rem;
+        box-shadow: 0 8px 16px rgba(24, 88, 212, 0.2);
+        transform-origin: left center;
+        animation: growSegment .45s ease both;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    .gantt-segment small { font-weight: 700; opacity: .92; margin-left: .35rem; }
+    .gantt-axis {
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: .76rem;
+        margin-top: .8rem;
+    }
+    .gantt-lane-labels, .timeline-meta { display: flex; flex-wrap: wrap; gap: .55rem; }
+    .timeline-step {
+        padding: .45rem .65rem;
+        border-radius: .75rem;
+        background: #fff;
+        border: 1px solid var(--border);
+        color: var(--brand-dark);
+        font-size: .78rem;
+        font-weight: 600;
+    }
+    .timeline-step.active {
+        background: rgba(24, 88, 212, 0.1);
+        border-color: rgba(24, 88, 212, 0.22);
+        color: var(--page-accent);
+    }
+    .queue-grid, .innovation-grid { display: grid; gap: .8rem; }
+    .queue-entry {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: .9rem;
+        padding: .8rem .9rem;
+        transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+    .queue-entry.active {
+        background: linear-gradient(135deg, rgba(24, 88, 212, 0.08), rgba(106, 174, 193, 0.1));
+        border-color: rgba(24, 88, 212, 0.28);
+        box-shadow: 0 8px 20px rgba(24, 88, 212, 0.1);
+        transform: translateY(-1px);
+    }
+    .queue-entry .fw-bold { color: var(--brand-dark); }
+    .bar-stack { display: grid; gap: .95rem; }
+    .bar-row { display: grid; grid-template-columns: 170px 1fr 1fr; gap: .7rem; align-items: center; }
+    .bar-row .bar-label { font-weight: 700; color: var(--brand-dark); font-size: .88rem; }
+    .bar-track { height: 16px; border-radius: 999px; background: rgba(22, 36, 45, 0.08); overflow: hidden; }
+    .bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: .4rem;
+        white-space: nowrap;
+        color: #fff;
+        font-size: .68rem;
+        font-weight: 800;
+    }
+    .bar-fill.omdrrs { background: linear-gradient(90deg, var(--page-accent), var(--page-accent-2)); }
+    .bar-fill.rr { background: linear-gradient(90deg, #f4b38a, #ffc977); color: #5a341f; }
+    .innovation-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        padding: .95rem;
+        border-left: 4px solid var(--page-accent);
+    }
+    .innovation-card h6 { margin-bottom: .45rem; font-weight: 800; color: var(--brand-dark); }
+    .innovation-card p { color: var(--muted); font-size: .9rem; margin: 0; }
+    .quantum-bars { display: flex; align-items: end; gap: .55rem; min-height: 170px; padding-top: .5rem; }
+    .quantum-bar { flex: 1 1 0; min-width: 32px; display: flex; flex-direction: column; align-items: center; gap: .45rem; }
+    .quantum-bar .pillar {
+        width: 100%;
+        min-height: 24px;
+        border-radius: .75rem .75rem .25rem .25rem;
+        background: linear-gradient(180deg, var(--page-accent-2), var(--page-accent));
+    }
+    .quantum-bar .tiny { font-size: .72rem; color: var(--muted); }
+    .quantum-bar .value { color: var(--brand-dark); font-weight: 900; font-size: .8rem; }
+    .build-state { color: var(--page-accent); font-weight: 800; }
+    .chart-panel {
+        min-height: 280px;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        padding: .75rem;
+    }
+    .innovation-metric {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: .65rem .8rem;
+        border-radius: .85rem;
+        background: rgba(24, 88, 212, 0.05);
+        border: 1px solid rgba(24, 88, 212, 0.1);
+        margin-bottom: .5rem;
+        color: var(--brand-dark);
+    }
+    .innovation-metric .delta { font-weight: 900; color: #0d8c86; font-size: .85rem; }
+    @keyframes growSegment { from { transform: scaleX(0.08); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+    @keyframes pulseSwitch {
+        0% { box-shadow: 0 0 0 0 rgba(24, 88, 212, 0.45); }
+        70% { box-shadow: 0 0 0 12px rgba(24, 88, 212, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(24, 88, 212, 0); }
+    }
+    .gantt-segment.active-segment { animation: growSegment .45s ease both, pulseSwitch .85s ease; z-index: 4; }
+    .gantt-segment.dimmed { opacity: .65; }
+    @media (max-width: 991px) { .bar-row { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 os-page omdrrs-shell">
+    <div class="page-hero scheduling-accent p-4 p-lg-5 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div class="pe-lg-4">
+                <div class="section-kicker mb-2">CPU scheduling · điểm nhấn nghiên cứu</div>
+                <h2 class="mb-3" style="color: var(--brand-dark);">OMDRRS</h2>
+                <p class="text-muted mb-3">
+                    Optimum Multilevel Dynamic Round Robin Scheduling là điểm nhấn mới của mô-đun CPU Scheduling.
+                    Dashboard này cho phép quan sát trực tiếp Ready Queue, hệ số F, Time Quantum động và từng lần cấp CPU.
+                </p>
+                <div class="timeline-meta mb-3">
+                    <span class="soft-badge">Burst + Arrival + Priority</span>
+                    <span class="soft-badge alt">Dynamic Time Quantum</span>
+                    <span class="soft-badge warn">So sánh RR truyền thống</span>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'app:simulation' %}" class="btn btn-outline-secondary btn-sm">Trung tâm mô phỏng</a>
+                    <a href="{% url 'app:scheduling_simulation' %}" class="btn btn-outline-primary btn-sm">FCFS / SJF / RR</a>
+                    <a href="{% url 'app:scheduling_compare' %}?run=1" class="btn btn-outline-primary btn-sm">So sánh tất cả</a>
+                    <button type="button" class="btn btn-primary btn-sm" id="build-btn-top">Tạo lịch OMDRRS</button>
+                </div>
+            </div>
+            <div class="d-grid gap-3" style="min-width: 290px;">
+                <div class="omdrrs-stat">
+                    <div class="label">Nguồn dữ liệu</div>
+                    <div class="value">{{ source_label }}</div>
+                    <div class="hint">{{ source_description }}</div>
+                </div>
+                <div class="omdrrs-stat">
+                    <div class="label">Tổng tiến trình</div>
+                    <div class="value" id="process-count-display">{{ live_process_count }}</div>
+                    <div class="hint">Số tiến trình đang được đưa vào engine mô phỏng.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-3"><div class="omdrrs-stat"><div class="label">Ready Queue</div><div class="value" id="ready-count">0</div><div class="hint">Được sắp xếp theo F tăng dần ở mỗi vòng lặp.</div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="omdrrs-stat"><div class="label">Dynamic Quantum</div><div class="value" id="current-quantum">{{ baseline_quantum }} ms</div><div class="hint">Quantum thay đổi theo trạng thái của hàng đợi.</div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="omdrrs-stat"><div class="label">Đang cấp CPU</div><div class="value" id="current-process">Chưa chạy</div><div class="hint">Tiến trình được chọn ở bước hiện tại.</div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="omdrrs-stat"><div class="label">Context Switching</div><div class="value" id="context-switches">0</div><div class="hint">Càng thấp càng cho thấy chi phí chuyển ngữ cảnh giảm.</div></div></div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-xl-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div><h5 class="mb-1">Khu vực nhập dữ liệu tiến trình</h5><div class="form-note">Process ID, Burst Time, Arrival Time, Priority. Có thể thêm hoặc xóa linh hoạt.</div></div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" id="add-row-btn">Thêm tiến trình</button>
+                        <button class="btn btn-sm btn-outline-primary" type="button" id="load-sample-btn">Nạp mẫu</button>
+                        <button class="btn btn-sm btn-outline-warning" type="button" data-bs-toggle="modal" data-bs-target="#uploadModal">📤 Nhập file</button>
+                        <button class="btn btn-sm btn-primary" type="button" id="build-btn">Tạo lịch</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle process-table mb-0">
+                            <thead><tr><th>Process ID</th><th>Burst Time</th><th>Arrival Time</th><th>Priority</th><th>F</th><th>Xóa</th></tr></thead>
+                            <tbody id="process-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                    <div><h5 class="mb-1">Bảng tính hệ số F</h5><div class="form-note">F = BurstTime × 0.2 + ArrivalTime × 0.3 + Priority × 0.5</div></div>
+                    <span class="soft-badge alt" id="f-order-label">Sắp xếp theo F tăng dần</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm metric-table align-middle">
+                            <thead><tr><th>Process</th><th>Burst</th><th>Arrival</th><th>Priority</th><th>F</th><th>Trạng thái</th></tr></thead>
+                            <tbody id="f-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-1">Điều khiển mô phỏng</h5>
+                    <div class="form-note">Step by Step, Auto Run, Pause và Reset trên cùng một dashboard.</div>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button class="btn btn-primary" type="button" id="step-btn">Step</button>
+                        <button class="btn btn-outline-primary" type="button" id="auto-btn">Auto Run</button>
+                        <button class="btn btn-outline-secondary" type="button" id="pause-btn">Pause</button>
+                        <button class="btn btn-outline-secondary" type="button" id="reset-btn">Reset</button>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small text-uppercase text-info-emphasis">Tốc độ Auto</label>
+                            <input type="range" class="form-range" id="speed-range" min="220" max="1400" step="20" value="780">
+                            <div class="form-note">Mỗi bước: <span id="speed-label">780 ms</span></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-uppercase text-info-emphasis">RR baseline quantum</label>
+                            <div class="omdrrs-chip w-100 justify-content-between soft-badge">
+                                <span>Quantum cố định</span>
+                                <strong id="rr-quantum-label">{{ baseline_quantum }} ms</strong>
+                            </div>
+                            <div class="form-note mt-2">Dùng để so sánh trực tiếp với OMDRRS.</div>
+                        </div>
+                    </div>
+                    <div class="status-pill mb-3"><span class="status-dot" id="status-dot"></span><span id="simulation-status">Sẵn sàng phân tích</span></div>
+                    <div class="omdrrs-panel p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                            <div><h6 class="mb-1">Giải thích quyết định của thuật toán</h6><div class="form-note">Sau mỗi lần lập lịch, hệ thống sinh giải thích tự nhiên theo từng bước.</div></div>
+                            <span class="soft-badge" id="step-counter">Bước 0</span>
+                        </div>
+                        <p class="mb-2" id="explanation-text">Nhấn <strong>Step</strong> hoặc <strong>Auto Run</strong> để xem OMDRRS chọn tiến trình nào và vì sao.</p>
+                        <div class="timeline-meta"><span class="soft-badge alt" id="explain-f">F: --</span><span class="soft-badge warn" id="explain-quantum">TQ: --</span><span class="soft-badge" id="explain-remaining">Còn lại: --</span></div>
+                    </div>
+                    <div class="scheduling-soft rounded-3 p-3 mb-3">
+                        <h6 class="mb-2">Ready Queue theo F tăng dần</h6>
+                        <div class="queue-grid" id="ready-queue"></div>
+                    </div>
+                    <div class="scheduling-soft rounded-3 p-3">
+                        <h6 class="mb-2">Dòng thời gian CPU đang chạy</h6>
+                        <div class="timeline-meta mb-2" id="step-tags"></div>
+                        <div class="form-note mb-0">Mỗi segment sẽ được animate khi CPU chuyển sang tiến trình kế tiếp.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center gap-2">
+                    <div><h5 class="mb-1">Gantt Chart động</h5><div class="form-note">Quan sát từng lần chuyển CPU và từng đoạn thực thi trong thời gian thực.</div></div>
+                    <div class="timeline-meta"><span class="soft-badge">Step by Step</span><span class="soft-badge alt">Auto Run</span><span class="soft-badge warn">Pause</span></div>
+                </div>
+                <div class="card-body">
+                    <div class="gantt-wrap">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="timeline-meta"><span class="soft-badge" id="gantt-total-time">Total: 0</span><span class="soft-badge alt" id="gantt-ready-state">Ready Queue: 0</span></div>
+                            <div class="build-state" id="build-state">Chưa tạo lịch</div>
+                        </div>
+                        <div class="gantt-track mt-3" id="gantt-track">
+                            <div class="gantt-empty" id="gantt-empty">Nhập dữ liệu và nhấn <strong>Tạo lịch</strong> để xem Gantt Chart OMDRRS.</div>
+                        </div>
+                        <div class="gantt-axis" id="gantt-axis"></div>
+                        <div class="gantt-lane-labels" id="gantt-legend"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-xl-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-1">So sánh với Round Robin truyền thống</h5>
+                    <div class="form-note">Turnaround Time, Waiting Time, Response Time và Context Switching được hiển thị song song.</div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-panel mb-3">
+                        <canvas id="comparison-chart-canvas" height="120"></canvas>
+                    </div>
+                    <div class="bar-stack" id="comparison-chart"></div>
+                    <div class="mt-3 form-note">RR baseline dùng quantum cố định để làm mốc đối chiếu với OMDRRS.</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-1">Điểm mới của OMDRRS</h5>
+                    <div class="form-note">Dashboard nghiên cứu này nhấn mạnh lý do OMDRRS khác Round Robin truyền thống.</div>
+                </div>
+                <div class="card-body">
+                    <div class="innovation-grid mb-3">
+                        <div class="innovation-card"><h6>Đa tiêu chí</h6><p>Dùng đồng thời Burst Time, Arrival Time và Priority để xếp hàng theo hệ số F thay vì chỉ dựa vào thứ tự đến.</p></div>
+                        <div class="innovation-card"><h6>Quantum động</h6><p>Time Quantum thay đổi theo trạng thái Ready Queue, giúp CPU cấp phát linh hoạt hơn so với quantum cố định.</p></div>
+                        <div class="innovation-card"><h6>Hiệu năng</h6><p>Hiển thị trực tiếp mức giảm Waiting Time, Turnaround Time và Context Switching sau mỗi lần chạy.</p></div>
+                    </div>
+                    <div id="innovation-highlights" class="mb-3"></div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">Quantum thay đổi theo từng vòng</h6>
+                            <span class="improvement-pill">Dynamic TQ Trace</span>
+                        </div>
+                        <div class="quantum-bars" id="quantum-bars"></div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm metric-table mb-0">
+                            <thead><tr><th>Chỉ số</th><th>OMDRRS</th><th>RR</th><th>Giảm</th></tr></thead>
+                            <tbody id="innovation-summary"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script id="seed-processes-data" type="application/json">{{ seed_processes_json|safe }}</script>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(() => {
+    const seedProcesses = JSON.parse(document.getElementById('seed-processes-data').textContent || '[]');
+    const baselineQuantumHint = {{ baseline_quantum|default:12 }};
+
+    const tableBody = document.getElementById('process-table-body');
+    const fTableBody = document.getElementById('f-table-body');
+    const readyQueue = document.getElementById('ready-queue');
+    const ganttTrack = document.getElementById('gantt-track');
+    const ganttAxis = document.getElementById('gantt-axis');
+    const ganttLegend = document.getElementById('gantt-legend');
+    const ganttEmpty = document.getElementById('gantt-empty');
+    const comparisonChart = document.getElementById('comparison-chart');
+    const comparisonCanvas = document.getElementById('comparison-chart-canvas');
+    const innovationSummary = document.getElementById('innovation-summary');
+    const innovationHighlights = document.getElementById('innovation-highlights');
+    const quantumBars = document.getElementById('quantum-bars');
+    const stepTags = document.getElementById('step-tags');
+
+    const currentProcess = document.getElementById('current-process');
+    const currentQuantum = document.getElementById('current-quantum');
+    const readyCount = document.getElementById('ready-count');
+    const contextSwitches = document.getElementById('context-switches');
+    const simulationStatus = document.getElementById('simulation-status');
+    const statusDot = document.getElementById('status-dot');
+    const explanationText = document.getElementById('explanation-text');
+    const stepCounter = document.getElementById('step-counter');
+    const explainF = document.getElementById('explain-f');
+    const explainQuantum = document.getElementById('explain-quantum');
+    const explainRemaining = document.getElementById('explain-remaining');
+    const buildState = document.getElementById('build-state');
+    const ganttTotalTime = document.getElementById('gantt-total-time');
+    const ganttReadyState = document.getElementById('gantt-ready-state');
+    const buildBtn = document.getElementById('build-btn');
+    const buildBtnTop = document.getElementById('build-btn-top');
+    const addRowBtn = document.getElementById('add-row-btn');
+    const loadSampleBtn = document.getElementById('load-sample-btn');
+    const stepBtn = document.getElementById('step-btn');
+    const autoBtn = document.getElementById('auto-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const speedRange = document.getElementById('speed-range');
+    const speedLabel = document.getElementById('speed-label');
+    const processCountDisplay = document.getElementById('process-count-display');
+    const rrQuantumLabel = document.getElementById('rr-quantum-label');
+
+    const palette = ['#4f86f7', '#2f8f9d', '#8a6cff', '#f4b38a', '#0d8c86', '#1858d4', '#6aaec1', '#ea580c'];
+    const state = { processes: [], omdrrs: null, rr: null, stepIndex: -1, timer: null, playing: false, speed: Number(speedRange.value) };
+    let comparisonChartInstance = null;
+
+    function escapeHtml(text) {
+        return String(text)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    function clampInt(value, fallback, min = 0) {
+        const parsed = Number.parseInt(value, 10);
+        if (Number.isNaN(parsed)) return fallback;
+        return Math.max(min, parsed);
+    }
+
+    function computeF(proc) {
+        return (proc.burst * 0.2) + (proc.arrival * 0.3) + (proc.priority * 0.5);
+    }
+
+    function buildNaturalExplanation(selected, snapshotBefore, quantum, slice, remainingAfter) {
+        const minPriority = Math.min(...snapshotBefore.map((p) => p.priority));
+        const avgRemaining = snapshotBefore.reduce((acc, p) => acc + p.remaining, 0) / snapshotBefore.length;
+        const burstShort = selected.remaining <= avgRemaining + 0.5;
+        const priorityHigh = selected.priority <= minPriority;
+        let reason = `Tiến trình ${selected.pidLabel} được chọn vì có hệ số F thấp nhất (${selected.f.toFixed(2)})`;
+        if (burstShort && priorityHigh) {
+            reason += ', Burst Time ngắn và mức ưu tiên cao';
+        } else if (burstShort) {
+            reason += ' và Burst Time ngắn hơn mặt bằng Ready Queue';
+        } else if (priorityHigh) {
+            reason += ' và mức ưu tiên cao';
+        }
+        reason += `. Dynamic Time Quantum hiện tại là ${quantum}ms nên ${selected.pidLabel} được cấp CPU trước.`;
+        if (remainingAfter > 0) {
+            reason += ` Sau ${slice}ms, tiến trình còn ${remainingAfter}ms và được đưa trở lại Ready Queue.`;
+        } else {
+            reason += ` Sau ${slice}ms, tiến trình hoàn thành.`;
+        }
+        return reason;
+    }
+
+    function colorForIndex(index) {
+        return palette[index % palette.length];
+    }
+
+    function updateProcessCount() {
+        processCountDisplay.textContent = tableBody.querySelectorAll('tr').length;
+    }
+
+    function addRow(proc = {}) {
+        const rowIndex = tableBody.querySelectorAll('tr').length + 1;
+        const tr = document.createElement('tr');
+        tr.dataset.uid = proc.uid || `${Date.now()}-${rowIndex}`;
+        tr.innerHTML = `
+            <td><input class="form-control form-control-sm" data-field="pid" value="${escapeHtml(proc.pidLabel || `P${rowIndex}`)}" placeholder="P${rowIndex}"></td>
+            <td><input type="number" class="form-control form-control-sm" data-field="burst" value="${Number.isFinite(proc.burst) ? proc.burst : 10}" min="1"></td>
+            <td><input type="number" class="form-control form-control-sm" data-field="arrival" value="${Number.isFinite(proc.arrival) ? proc.arrival : 0}" min="0"></td>
+            <td><input type="number" class="form-control form-control-sm" data-field="priority" value="${Number.isFinite(proc.priority) ? proc.priority : 3}" min="1" max="9"></td>
+            <td><span class="soft-badge" data-field="f">--</span></td>
+            <td><button type="button" class="btn btn-sm btn-outline-danger w-100" data-action="remove">Xóa</button></td>
+        `;
+        tableBody.appendChild(tr);
+        tr.querySelector('[data-action="remove"]').addEventListener('click', () => {
+            tr.remove();
+            updateProcessCount();
+            refreshFPreview();
+        });
+        tr.querySelectorAll('input').forEach((input) => input.addEventListener('input', refreshFPreview));
+    }
+
+    function renderRows(processes) {
+        tableBody.innerHTML = '';
+        processes.forEach((proc) => addRow({
+            uid: proc.uid,
+            pidLabel: proc.pidLabel || proc.label || proc.name,
+            burst: proc.burst,
+            arrival: proc.arrival,
+            priority: proc.priority,
+        }));
+        updateProcessCount();
+        refreshFPreview();
+    }
+
+    function collectProcesses() {
+        return Array.from(tableBody.querySelectorAll('tr')).map((tr, index) => {
+            const pidLabel = (tr.querySelector('[data-field="pid"]').value || `P${index + 1}`).trim();
+            const burst = clampInt(tr.querySelector('[data-field="burst"]').value, 1, 1);
+            const arrival = clampInt(tr.querySelector('[data-field="arrival"]').value, 0, 0);
+            const priority = clampInt(tr.querySelector('[data-field="priority"]').value, 3, 1);
+            return {
+                uid: tr.dataset.uid || `${index + 1}`,
+                pidLabel,
+                burst,
+                arrival,
+                priority,
+                f: computeF({ burst, arrival, priority }),
+            };
+        });
+    }
+
+    function refreshFPreview() {
+        const processes = collectProcesses();
+        const sorted = [...processes].sort((a, b) => a.f - b.f || a.arrival - b.arrival || a.priority - b.priority || a.pidLabel.localeCompare(b.pidLabel));
+        fTableBody.innerHTML = '';
+        if (!sorted.length) {
+            fTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Chưa có dữ liệu</td></tr>';
+            return;
+        }
+        sorted.forEach((proc, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${escapeHtml(proc.pidLabel)}</strong></td>
+                <td>${proc.burst}</td>
+                <td>${proc.arrival}</td>
+                <td>${proc.priority}</td>
+                <td><span class="soft-badge">${proc.f.toFixed(2)}</span></td>
+                <td>${index === 0 ? '<span class="soft-badge alt">Ưu tiên cao nhất</span>' : '<span class="soft-badge">Chờ xếp hàng</span>'}</td>
+            `;
+            fTableBody.appendChild(tr);
+        });
+        const first = sorted[0];
+        const badge = document.querySelectorAll('[data-field="f"]');
+        badge.forEach((node, idx) => {
+            const source = processes[idx];
+            if (source) node.textContent = source.f.toFixed(2);
+        });
+        return sorted;
+    }
+
+    function calcDynamicQuantum(ready, selected) {
+        const remaining = ready.map((p) => p.remaining);
+        const avg = remaining.reduce((acc, value) => acc + value, 0) / remaining.length;
+        const min = Math.min(...remaining);
+        const max = Math.max(...remaining);
+        const priorityBoost = Math.max(0, 6 - selected.priority) * 1.15;
+        const stability = ready.length > 1 ? Math.min(4, (max - min) * 0.08) : 0;
+        return Math.max(4, Math.round((avg * 0.45) + (min * 0.32) + (selected.remaining * 0.13) + priorityBoost - stability));
+    }
+
+    function buildInternalProcesses(processes) {
+        return processes.map((p, index) => ({
+            uid: String(p.uid || `${index + 1}`),
+            pidLabel: p.pidLabel || `P${index + 1}`,
+            burst: clampInt(p.burst, 1, 1),
+            arrival: clampInt(p.arrival, 0, 0),
+            priority: clampInt(p.priority, 3, 1),
+            remaining: clampInt(p.burst, 1, 1),
+            f: computeF({ burst: clampInt(p.burst, 1, 1), arrival: clampInt(p.arrival, 0, 0), priority: clampInt(p.priority, 3, 1) }),
+        }));
+    }
+
+    function buildMetrics(processes, segments, contextSwitchCount) {
+        const firstStart = new Map();
+        const completion = new Map();
+        segments.forEach((segment) => {
+            if (segment.idle) return;
+            if (!firstStart.has(segment.uid)) firstStart.set(segment.uid, segment.start);
+            completion.set(segment.uid, segment.end);
+        });
+        const rows = processes.map((proc) => {
+            const start = firstStart.has(proc.uid) ? firstStart.get(proc.uid) : proc.arrival;
+            const end = completion.has(proc.uid) ? completion.get(proc.uid) : proc.arrival + proc.burst;
+            return {
+                ...proc,
+                start,
+                end,
+                wait: Math.max(0, end - proc.arrival - proc.burst),
+                tat: Math.max(0, end - proc.arrival),
+                response: Math.max(0, start - proc.arrival),
+            };
+        });
+        const count = rows.length || 1;
+        const avgWait = rows.reduce((acc, row) => acc + row.wait, 0) / count;
+        const avgTat = rows.reduce((acc, row) => acc + row.tat, 0) / count;
+        const avgResponse = rows.reduce((acc, row) => acc + row.response, 0) / count;
+        const maxEnd = segments.filter((seg) => !seg.idle).reduce((acc, seg) => Math.max(acc, seg.end), 0);
+        const minArrival = processes.reduce((acc, proc) => Math.min(acc, proc.arrival), processes[0]?.arrival || 0);
+        const span = Math.max(1, maxEnd - minArrival);
+        const totalBurst = processes.reduce((acc, proc) => acc + proc.burst, 0);
+        return {
+            rows,
+            avgWait: Number(avgWait.toFixed(2)),
+            avgTat: Number(avgTat.toFixed(2)),
+            avgResponse: Number(avgResponse.toFixed(2)),
+            cpuUtil: Number(Math.min(100, (totalBurst / span) * 100).toFixed(2)),
+            contextSwitches: contextSwitchCount,
+        };
+    }
+
+    function scheduleOMDRRS(sourceProcesses) {
+        const processes = buildInternalProcesses(sourceProcesses);
+        const pending = processes.map((p) => ({ ...p })).sort((a, b) => a.arrival - b.arrival || a.f - b.f || a.priority - b.priority || a.uid.localeCompare(b.uid));
+        const ready = [];
+        const segments = [];
+        const steps = [];
+        const quantumSeries = [];
+        let time = 0;
+        let lastPid = null;
+        let contextSwitchCount = 0;
+
+        const pullArrivals = (upToTime) => {
+            while (pending.length && pending[0].arrival <= upToTime) ready.push(pending.shift());
+        };
+        pullArrivals(time);
+
+        while (pending.length || ready.length) {
+            if (!ready.length) {
+                const nextArrival = pending[0].arrival;
+                if (time < nextArrival) {
+                    segments.push({ uid: 'IDLE', pidLabel: 'IDLE', start: time, end: nextArrival, slice: nextArrival - time, quantum: 0, remainingBefore: 0, remainingAfter: 0, idle: true });
+                    time = nextArrival;
+                }
+                pullArrivals(time);
+                continue;
+            }
+
+            ready.sort((a, b) => a.f - b.f || a.arrival - b.arrival || a.priority - b.priority || a.uid.localeCompare(b.uid));
+            const snapshotBefore = ready.map((p) => ({ uid: p.uid, pidLabel: p.pidLabel, remaining: p.remaining, f: p.f, arrival: p.arrival, priority: p.priority }));
+            const selected = ready[0];
+            const quantum = calcDynamicQuantum(ready, selected);
+            const slice = Math.min(selected.remaining, quantum);
+            const start = time;
+            const end = time + slice;
+            const remainingBefore = selected.remaining;
+            if (lastPid !== null && lastPid !== selected.uid) contextSwitchCount += 1;
+            selected.remaining -= slice;
+            time = end;
+            pullArrivals(time);
+            ready.shift();
+            if (selected.remaining > 0) ready.push(selected);
+
+            const readyAfter = ready.slice().sort((a, b) => a.f - b.f || a.arrival - b.arrival || a.priority - b.priority || a.uid.localeCompare(b.uid)).map((p) => ({ uid: p.uid, pidLabel: p.pidLabel, remaining: p.remaining, f: p.f, arrival: p.arrival, priority: p.priority }));
+            const explanation = buildNaturalExplanation(selected, snapshotBefore, quantum, slice, selected.remaining);
+
+            segments.push({
+                uid: selected.uid,
+                pidLabel: selected.pidLabel,
+                start,
+                end,
+                slice,
+                quantum,
+                remainingBefore,
+                remainingAfter: selected.remaining,
+                f: selected.f,
+                arrival: selected.arrival,
+                burst: selected.burst,
+                priority: selected.priority,
+                readyBefore: snapshotBefore,
+                readyAfter,
+                explanation,
+            });
+            steps.push({
+                index: steps.length,
+                uid: selected.uid,
+                pidLabel: selected.pidLabel,
+                start,
+                end,
+                quantum,
+                slice,
+                f: selected.f,
+                remainingBefore,
+                remainingAfter: selected.remaining,
+                explanation,
+                readyBefore: snapshotBefore,
+                readyAfter,
+                contextSwitches: contextSwitchCount,
+            });
+            quantumSeries.push({ step: steps.length, value: quantum, pidLabel: selected.pidLabel });
+            lastPid = selected.uid;
+        }
+
+        return { processes, segments, steps, metrics: buildMetrics(processes, segments, contextSwitchCount), quantumSeries, contextSwitchCount };
+    }
+
+    function scheduleRR(sourceProcesses, quantum) {
+        const processes = buildInternalProcesses(sourceProcesses);
+        const pending = processes.map((p) => ({ ...p })).sort((a, b) => a.arrival - b.arrival || a.uid.localeCompare(b.uid));
+        const ready = [];
+        const segments = [];
+        let time = 0;
+        let lastPid = null;
+        let contextSwitchCount = 0;
+
+        const pullArrivals = (upToTime) => {
+            while (pending.length && pending[0].arrival <= upToTime) ready.push(pending.shift());
+        };
+        pullArrivals(time);
+
+        while (pending.length || ready.length) {
+            if (!ready.length) {
+                const nextArrival = pending[0].arrival;
+                if (time < nextArrival) segments.push({ uid: 'IDLE', pidLabel: 'IDLE', start: time, end: nextArrival, slice: nextArrival - time, quantum: 0, remainingBefore: 0, remainingAfter: 0, idle: true });
+                time = nextArrival;
+                pullArrivals(time);
+                continue;
+            }
+            const selected = ready.shift();
+            const slice = Math.min(selected.remaining, quantum);
+            const start = time;
+            const end = time + slice;
+            if (lastPid !== null && lastPid !== selected.uid) contextSwitchCount += 1;
+            selected.remaining -= slice;
+            time = end;
+            pullArrivals(time);
+            if (selected.remaining > 0) ready.push(selected);
+            segments.push({
+                uid: selected.uid,
+                pidLabel: selected.pidLabel,
+                start,
+                end,
+                slice,
+                quantum,
+                remainingBefore: selected.burst,
+                remainingAfter: selected.remaining,
+                f: selected.f,
+                arrival: selected.arrival,
+                burst: selected.burst,
+                priority: selected.priority,
+            });
+            lastPid = selected.uid;
+        }
+
+        return { processes, segments, metrics: buildMetrics(processes, segments, contextSwitchCount), contextSwitchCount };
+    }
+
+    function buildComparisonChart(omdrrsMetrics, rrMetrics) {
+        if (!comparisonCanvas || typeof Chart === 'undefined') return;
+        const labels = ['Waiting Time', 'Turnaround Time', 'Response Time', 'Context Switching'];
+        const omData = [omdrrsMetrics.avgWait, omdrrsMetrics.avgTat, omdrrsMetrics.avgResponse, omdrrsMetrics.contextSwitches];
+        const rrData = [rrMetrics.avgWait, rrMetrics.avgTat, rrMetrics.avgResponse, rrMetrics.contextSwitches];
+        if (comparisonChartInstance) comparisonChartInstance.destroy();
+        comparisonChartInstance = new Chart(comparisonCanvas, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'OMDRRS',
+                        data: omData,
+                        backgroundColor: 'rgba(24, 88, 212, 0.82)',
+                        borderRadius: 8,
+                    },
+                    {
+                        label: 'Round Robin',
+                        data: rrData,
+                        backgroundColor: 'rgba(244, 179, 138, 0.92)',
+                        borderRadius: 8,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#17323b', font: { weight: '700' } } },
+                },
+                scales: {
+                    x: { ticks: { color: '#667784' }, grid: { color: 'rgba(22,36,45,0.06)' } },
+                    y: { ticks: { color: '#667784' }, grid: { color: 'rgba(22,36,45,0.06)' }, beginAtZero: true },
+                },
+            },
+        });
+    }
+
+    function buildInnovationHighlights(omdrrsMetrics, rrMetrics) {
+        if (!innovationHighlights) return;
+        const items = [
+            { label: 'Giảm Waiting Time', key: 'avgWait', unit: 'ms' },
+            { label: 'Giảm Turnaround Time', key: 'avgTat', unit: 'ms' },
+            { label: 'Giảm Response Time', key: 'avgResponse', unit: 'ms' },
+            { label: 'Giảm Context Switching', key: 'contextSwitches', unit: 'lần' },
+        ];
+        innovationHighlights.innerHTML = '';
+        items.forEach((item) => {
+            const om = omdrrsMetrics[item.key];
+            const rr = rrMetrics[item.key];
+            const decrease = rr > 0 ? Math.max(0, ((rr - om) / rr) * 100) : 0;
+            const row = document.createElement('div');
+            row.className = 'innovation-metric';
+            row.innerHTML = `
+                <span>${item.label}</span>
+                <span class="delta">-${decrease.toFixed(1)}% (${Number(om).toFixed(1)} vs ${Number(rr).toFixed(1)} ${item.unit})</span>
+            `;
+            innovationHighlights.appendChild(row);
+        });
+    }
+
+    function buildComparisonTable(omdrrsMetrics, rrMetrics, rrQuantum) {
+        const rows = [
+            { label: 'Waiting Time', key: 'avgWait', unit: 'ms' },
+            { label: 'Turnaround Time', key: 'avgTat', unit: 'ms' },
+            { label: 'Response Time', key: 'avgResponse', unit: 'ms' },
+            { label: 'Context Switching', key: 'contextSwitches', unit: 'lần' },
+        ];
+        const maxValue = Math.max(...rows.map((row) => Math.max(omdrrsMetrics[row.key], rrMetrics[row.key])), 1);
+        comparisonChart.innerHTML = '';
+        buildComparisonChart(omdrrsMetrics, rrMetrics);
+        rows.forEach((row) => {
+            const omVal = omdrrsMetrics[row.key];
+            const rrVal = rrMetrics[row.key];
+            const wrap = document.createElement('div');
+            wrap.className = 'bar-row';
+            wrap.innerHTML = `
+                <div class="bar-label">${row.label}</div>
+                <div class="bar-column">
+                    <div class="bar-track"><div class="bar-fill omdrrs" style="width:${Math.max(8, (omVal / maxValue) * 100)}%">${omVal.toFixed(2)} ${row.unit}</div></div>
+                    <small class="text-info">OMDRRS</small>
+                </div>
+                <div class="bar-column">
+                    <div class="bar-track"><div class="bar-fill rr" style="width:${Math.max(8, (rrVal / maxValue) * 100)}%">${rrVal.toFixed(2)} ${row.unit}</div></div>
+                    <small class="text-warning">RR q=${rrQuantum}</small>
+                </div>
+            `;
+            comparisonChart.appendChild(wrap);
+        });
+    }
+
+    function buildInnovationSummary(omdrrsMetrics, rrMetrics) {
+        const metrics = [
+            { label: 'Waiting Time', key: 'avgWait', unit: 'ms' },
+            { label: 'Turnaround Time', key: 'avgTat', unit: 'ms' },
+            { label: 'Response Time', key: 'avgResponse', unit: 'ms' },
+            { label: 'Context Switching', key: 'contextSwitches', unit: 'lần' },
+        ];
+        innovationSummary.innerHTML = '';
+        metrics.forEach((metric) => {
+            const om = omdrrsMetrics[metric.key];
+            const rr = rrMetrics[metric.key];
+            const decrease = rr > 0 ? Math.max(0, ((rr - om) / rr) * 100) : 0;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td><strong>${metric.label}</strong></td><td>${Number(om).toFixed(2)} ${metric.unit}</td><td>${Number(rr).toFixed(2)} ${metric.unit}</td><td><span class="improvement-pill">${decrease.toFixed(1)}%</span></td>`;
+            innovationSummary.appendChild(tr);
+        });
+    }
+
+    function buildQuantumBars(series) {
+        quantumBars.innerHTML = '';
+        if (!series.length) {
+            quantumBars.innerHTML = '<div class="text-muted">Chưa có dữ liệu quantum.</div>';
+            return;
+        }
+        const maxValue = Math.max(...series.map((item) => item.value), 1);
+        series.slice(0, 12).forEach((item) => {
+            const bar = document.createElement('div');
+            bar.className = 'quantum-bar';
+            const height = Math.max(24, (item.value / maxValue) * 120);
+            bar.innerHTML = `<div class="value">${item.value}ms</div><div class="pillar" style="height:${height}px"></div><div class="tiny">B${item.step}</div>`;
+            quantumBars.appendChild(bar);
+        });
+    }
+
+    function renderReadyQueue(step) {
+        readyQueue.innerHTML = '';
+        if (!step) {
+            readyQueue.innerHTML = '<div class="queue-entry">Chưa có dữ liệu để xếp hàng.</div>';
+            return;
+        }
+        step.readyBefore.forEach((proc, index) => {
+            const item = document.createElement('div');
+            item.className = 'queue-entry' + (index === 0 ? ' active' : '');
+            item.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                        <div class="fw-bold">${escapeHtml(proc.pidLabel)}</div>
+                        <div class="meta">Remaining: ${proc.remaining}ms | Priority: ${proc.priority}</div>
+                    </div>
+                    <span class="soft-badge" style="color:${colorForIndex(index)}; background: rgba(255,255,255,0.08);">${proc.f.toFixed(2)}</span>
+                </div>
+            `;
+            readyQueue.appendChild(item);
+        });
+    }
+
+    function renderStepTags(step) {
+        stepTags.innerHTML = '';
+        if (!step) return;
+        [`Chọn ${step.pidLabel}`, `F = ${step.f.toFixed(2)}`, `Quantum = ${step.quantum}ms`, `Slice = ${step.slice}ms`].forEach((tag, index) => {
+            const span = document.createElement('span');
+            span.className = 'timeline-step' + (index === 0 ? ' active' : '');
+            span.textContent = tag;
+            stepTags.appendChild(span);
+        });
+    }
+
+    function renderGantt() {
+        ganttTrack.querySelectorAll('.gantt-segment').forEach((node) => node.remove());
+        if (!state.omdrrs || !state.omdrrs.segments.length) {
+            ganttEmpty.style.display = 'block';
+            ganttAxis.innerHTML = '';
+            ganttLegend.innerHTML = '';
+            ganttTotalTime.textContent = 'Total: 0';
+            ganttReadyState.textContent = 'Ready Queue: 0';
+            return;
+        }
+        const runnableSegments = state.omdrrs.segments.filter((segment) => !segment.idle);
+        const shownSegments = state.stepIndex < 0 ? [] : runnableSegments.slice(0, state.stepIndex + 1);
+        ganttEmpty.style.display = shownSegments.length ? 'none' : 'block';
+        const maxEnd = Math.max(...state.omdrrs.segments.map((segment) => segment.end));
+        const minStart = Math.min(...state.omdrrs.segments.map((segment) => segment.start));
+        const span = Math.max(1, maxEnd - minStart);
+        ganttTotalTime.textContent = `Total: ${maxEnd}ms`;
+        const currentStep = state.omdrrs.steps[Math.max(0, Math.min(state.stepIndex, state.omdrrs.steps.length - 1))];
+        ganttReadyState.textContent = `Ready Queue: ${currentStep?.readyBefore.length || 0}`;
+        const colorByUid = new Map();
+        state.omdrrs.processes.forEach((proc, index) => colorByUid.set(proc.uid, colorForIndex(index)));
+        shownSegments.forEach((segment, index) => {
+            const seg = document.createElement('div');
+            const isActive = index === shownSegments.length - 1;
+            seg.className = 'gantt-segment' + (isActive ? ' active-segment' : ' dimmed');
+            seg.style.left = `${((segment.start - minStart) / span) * 100}%`;
+            seg.style.width = `${Math.max(2.5, ((segment.end - segment.start) / span) * 100)}%`;
+            seg.style.background = `linear-gradient(135deg, ${colorByUid.get(segment.uid) || colorForIndex(index)}, var(--page-accent-2, #4f86f7))`;
+            seg.innerHTML = `${escapeHtml(segment.pidLabel)}<small>${segment.start}-${segment.end}</small>`;
+            ganttTrack.appendChild(seg);
+        });
+        ganttAxis.innerHTML = '';
+        const tickCount = Math.min(10, Math.max(2, Math.ceil(maxEnd / 10)));
+        for (let i = 0; i <= tickCount; i += 1) {
+            const tick = document.createElement('span');
+            tick.textContent = `${Math.round((i / tickCount) * maxEnd)}ms`;
+            ganttAxis.appendChild(tick);
+        }
+        ganttLegend.innerHTML = '';
+        state.omdrrs.processes.forEach((proc, index) => {
+            const item = document.createElement('span');
+            item.className = 'soft-badge';
+            item.style.color = colorForIndex(index);
+            item.textContent = proc.pidLabel;
+            ganttLegend.appendChild(item);
+        });
+    }
+
+    function renderStep(stepIndex) {
+        state.stepIndex = stepIndex;
+        if (!state.omdrrs) return;
+        const step = state.omdrrs.steps[stepIndex] || null;
+        currentProcess.textContent = step ? step.pidLabel : 'Chưa chạy';
+        currentQuantum.textContent = step ? `${step.quantum} ms` : `${baselineQuantumHint} ms`;
+        contextSwitches.textContent = step ? step.contextSwitches : 0;
+        readyCount.textContent = step ? step.readyBefore.length : state.omdrrs.processes.length;
+        stepCounter.textContent = step ? `Bước ${stepIndex + 1}` : 'Bước 0';
+        if (!step) {
+            explanationText.innerHTML = 'Nhấn <strong>Step</strong> hoặc <strong>Auto Run</strong> để xem OMDRRS chọn tiến trình nào và vì sao.';
+            explainF.textContent = 'F: --';
+            explainQuantum.textContent = 'TQ: --';
+            explainRemaining.textContent = 'Còn lại: --';
+            buildState.textContent = 'Chưa tạo lịch';
+            simulationStatus.textContent = 'Sẵn sàng phân tích';
+            renderReadyQueue(null);
+            renderStepTags(null);
+            renderGantt();
+            return;
+        }
+        explanationText.textContent = step.explanation;
+        explainF.textContent = `F: ${step.f.toFixed(2)}`;
+        explainQuantum.textContent = `TQ: ${step.quantum}ms`;
+        explainRemaining.textContent = `Còn lại: ${step.remainingAfter}ms`;
+        renderReadyQueue(step);
+        renderStepTags(step);
+        buildState.textContent = `Đang mô phỏng ${step.pidLabel}`;
+        simulationStatus.textContent = `Đang chạy bước ${stepIndex + 1}`;
+        renderGantt();
+    }
+
+    function baselineQuantum() {
+        return Math.max(4, Math.round(seedProcesses.reduce((acc, proc) => acc + proc.burst, 0) / Math.max(1, seedProcesses.length) * 0.6));
+    }
+
+    function rebuildSimulation() {
+        state.processes = collectProcesses();
+        refreshFPreview();
+        updateProcessCount();
+        if (!state.processes.length) {
+            state.omdrrs = null;
+            state.rr = null;
+            comparisonChart.innerHTML = '<div class="text-muted">Chưa có tiến trình để so sánh.</div>';
+            innovationSummary.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Chưa có dữ liệu</td></tr>';
+            if (innovationHighlights) innovationHighlights.innerHTML = '';
+            quantumBars.innerHTML = '<div class="text-muted">Chưa có dữ liệu quantum.</div>';
+            if (comparisonChartInstance) {
+                comparisonChartInstance.destroy();
+                comparisonChartInstance = null;
+            }
+            renderStep(-1);
+            return;
+        }
+        const rrQuantum = baselineQuantum();
+        state.omdrrs = scheduleOMDRRS(state.processes);
+        state.rr = scheduleRR(state.processes, rrQuantum);
+        rrQuantumLabel.textContent = `${rrQuantum} ms`;
+        currentQuantum.textContent = `${rrQuantum} ms`;
+        buildComparisonTable(state.omdrrs.metrics, state.rr.metrics, rrQuantum);
+        buildInnovationSummary(state.omdrrs.metrics, state.rr.metrics);
+        buildInnovationHighlights(state.omdrrs.metrics, state.rr.metrics);
+        buildQuantumBars(state.omdrrs.quantumSeries);
+        renderStep(-1);
+        buildState.textContent = 'Đã tạo lịch OMDRRS';
+        simulationStatus.textContent = 'Sẵn sàng phân tích';
+    }
+
+    function stopTimer() {
+        if (state.timer) clearInterval(state.timer);
+        state.timer = null;
+        state.playing = false;
+        autoBtn.disabled = false;
+        pauseBtn.disabled = true;
+    }
+
+    function stepForward() {
+        if (!state.omdrrs) {
+            rebuildSimulation();
+            if (!state.omdrrs) return;
+        }
+        const maxIndex = state.omdrrs.steps.length - 1;
+        if (state.stepIndex >= maxIndex) {
+            stopTimer();
+            simulationStatus.textContent = 'Hoàn thành OMDRRS';
+            return;
+        }
+        const nextIndex = Math.max(-1, state.stepIndex) + 1;
+        renderStep(nextIndex);
+        if (nextIndex >= maxIndex) {
+            stopTimer();
+            simulationStatus.textContent = 'Hoàn thành OMDRRS';
+        }
+    }
+
+    function autoRun() {
+        if (!state.omdrrs) {
+            rebuildSimulation();
+            if (!state.omdrrs) return;
+        }
+        stopTimer();
+        state.playing = true;
+        autoBtn.disabled = true;
+        pauseBtn.disabled = false;
+        simulationStatus.textContent = 'Auto Run đang hoạt động';
+        state.timer = setInterval(() => {
+            if (state.stepIndex >= state.omdrrs.steps.length - 1) {
+                stopTimer();
+                simulationStatus.textContent = 'Hoàn thành OMDRRS';
+                return;
+            }
+            stepForward();
+        }, state.speed);
+    }
+
+    function pauseRun() {
+        stopTimer();
+        simulationStatus.textContent = 'Đã tạm dừng';
+    }
+
+    function resetRun() {
+        stopTimer();
+        renderStep(-1);
+        simulationStatus.textContent = 'Đã reset về trạng thái ban đầu';
+    }
+
+    function loadSample() {
+        renderRows(seedProcesses);
+        rebuildSimulation();
+        simulationStatus.textContent = 'Đã nạp bộ dữ liệu mẫu / live';
+    }
+
+    speedRange.addEventListener('input', () => {
+        state.speed = Number(speedRange.value);
+        speedLabel.textContent = `${state.speed} ms`;
+    });
+    addRowBtn.addEventListener('click', () => {
+        addRow({ pidLabel: `P${tableBody.querySelectorAll('tr').length + 1}`, burst: 10, arrival: 0, priority: 3 });
+        refreshFPreview();
+        updateProcessCount();
+    });
+    loadSampleBtn.addEventListener('click', loadSample);
+    buildBtn.addEventListener('click', rebuildSimulation);
+    buildBtnTop.addEventListener('click', rebuildSimulation);
+    stepBtn.addEventListener('click', stepForward);
+    autoBtn.addEventListener('click', autoRun);
+    pauseBtn.addEventListener('click', pauseRun);
+    resetBtn.addEventListener('click', resetRun);
+    tableBody.addEventListener('input', () => { refreshFPreview(); updateProcessCount(); });
+
+    renderRows(seedProcesses);
+    rebuildSimulation();
+    pauseBtn.disabled = true;
+    speedLabel.textContent = `${state.speed} ms`;
+})();
+</script>
+{% endblock %}

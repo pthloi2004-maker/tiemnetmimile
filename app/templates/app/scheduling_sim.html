@@ -1,0 +1,1458 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Mô Phỏng Lập Lịch CPU — Trực Quan Từng Bước{% endblock %}
+{% block body_class %}scheduling-page-v3{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3 sched-root">
+
+  <!-- ═══ HEADER ═══ -->
+  <div class="sched-header d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <div>
+      <div class="sched-kicker">CPU Scheduling — Mô Phỏng Từng Bước</div>
+      <h2 class="sched-title mb-0">{{ algorithm_name }}</h2>
+      <p class="text-muted small mb-0">{{ algorithm_description }}</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+      <span class="badge-ctx" id="ctx-switch-badge">🔄 Context Switches: 0</span>
+      <a href="{% url 'app:simulation' %}" class="btn btn-sm btn-outline-secondary">← Trung tâm</a>
+    </div>
+  </div>
+
+  <!-- ═══ CONTROLS ═══ -->
+  <div class="sched-controls card mb-3">
+    <div class="card-body py-2">
+      <form id="sim-form" method="get" class="row g-2 align-items-end">
+        <div class="col-6 col-md-auto">
+          <label class="form-label small fw-semibold mb-1">Giải thuật</label>
+          <select name="algorithm" id="algorithm-select" class="form-select form-select-sm">
+            <option value="fcfs" {% if algorithm == 'fcfs' %}selected{% endif %}>FCFS</option>
+            <option value="sjf" {% if algorithm == 'sjf' %}selected{% endif %}>SJF</option>
+            <option value="rr" {% if algorithm == 'rr' %}selected{% endif %}>Round Robin</option>
+            <option value="omdrrs" {% if algorithm == 'omdrrs' %}selected{% endif %}>OMDRRS</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-auto" id="quantum-field" style="display:none">
+          <label class="form-label small fw-semibold mb-1">Quantum</label>
+          <input type="number" name="quantum" min="1" class="form-control form-select-sm" value="{{ quantum }}" style="width:80px">
+        </div>
+        <div class="col-6 col-md-auto">
+          <label class="form-label small fw-semibold mb-1">Dữ liệu</label>
+          <select name="data_mode" class="form-select form-select-sm">
+            <option value="live" {% if data_mode == 'live' %}selected{% endif %}>Thực tế</option>
+            <option value="demo" {% if data_mode == 'demo' %}selected{% endif %}>Bo de mau</option>
+            <option value="random" {% if data_mode == 'random' %}selected{% endif %}>Ngẫu nhiên</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary btn-sm">Chạy</button>
+        </div>
+        <!-- Playback controls -->
+        <div class="col-auto ms-md-auto d-flex gap-1">
+          <button type="button" id="btn-reset" class="btn btn-sm btn-outline-secondary" title="Reset">⟲</button>
+          <button type="button" id="btn-step-back" class="btn btn-sm btn-outline-secondary" title="Lùi 1 bước">←</button>
+          <button type="button" id="btn-play" class="btn btn-sm btn-success">▶ Chạy</button>
+          <button type="button" id="btn-step" class="btn btn-sm btn-outline-primary" title="Tiến 1 bước">→</button>
+          <select id="speed-select" class="form-select form-select-sm" style="width:90px">
+            <option value="2000">Chậm</option>
+            <option value="1000" selected>Bình thường</option>
+            <option value="400">Nhanh</option>
+          </select>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══ PROGRESS BAR ═══ -->
+  <div class="sched-progress mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <small class="text-muted">Bước <strong id="prog-step">0</strong> / <strong id="prog-total">{{ events_json|length }}</strong></small>
+      <small class="text-muted">⏱ Thời gian CPU: <strong id="prog-time">0</strong> phút</small>
+    </div>
+    <div class="progress" style="height:6px; border-radius:999px;">
+      <div id="prog-bar" class="progress-bar bg-gradient" role="progressbar" style="width:0%; background:linear-gradient(90deg,#6366f1,#ec4899);"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN LAYOUT ═══ -->
+  <div class="row g-3">
+
+    <!-- COL 1: EVENT LOG (Arrival Timeline) -->
+    <div class="col-lg-3">
+      <div class="sched-card h-100">
+        <div class="sched-card-header">
+          <span>📋 Nhật Ký Sự Kiện</span>
+          <small class="text-muted" id="event-count">0 sự kiện</small>
+        </div>
+        <div class="sched-card-body" id="event-log" style="max-height:680px;overflow-y:auto;">
+          <div class="text-center text-muted py-4" id="event-empty">
+            <div style="font-size:2rem">📭</div>
+            <div>Nhấn ▶ để bắt đầu mô phỏng</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COL 2: READY QUEUE + RUNNING PROCESS -->
+    <div class="col-lg-3">
+      <!-- Running Process -->
+      <div class="sched-card mb-3">
+        <div class="sched-card-header">
+          <span>🖥️ CPU Đang Chạy</span>
+          <span class="cpu-status-badge" id="cpu-status-badge">IDLE</span>
+        </div>
+        <div class="sched-card-body p-3" id="running-panel" style="min-height:180px;">
+          <div class="text-center text-muted py-4" id="running-empty">
+            <div style="font-size:2rem">💤</div>
+            <div>CPU đang rảnh</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ready Queue -->
+      <div class="sched-card">
+        <div class="sched-card-header">
+          <span>⏳ Ready Queue</span>
+          <span class="badge bg-secondary rounded-pill" id="queue-count-badge">0</span>
+        </div>
+        <div class="sched-card-body" id="ready-queue-panel" style="max-height:320px;overflow-y:auto;min-height:80px;">
+          <div class="text-center text-muted py-2" id="queue-empty">Queue trống</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COL 3: GANTT + STATS -->
+    <div class="col-lg-6">
+      <!-- Stats row -->
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3">
+          <div class="stat-mini" style="--c:#6366f1">
+            <small>Chờ TB</small>
+            <strong id="stat-wait">—</strong>
+            <span>phút</span>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-mini" style="--c:#ec4899">
+            <small>TAT TB</small>
+            <strong id="stat-tat">—</strong>
+            <span>phút</span>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-mini" style="--c:#f59e0b">
+            <small>Response TB</small>
+            <strong id="stat-resp">—</strong>
+            <span>phút</span>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-mini" style="--c:#10b981">
+            <small>CPU Util</small>
+            <strong id="stat-util">—</strong>
+            <span>%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gantt Chart -->
+      <div class="sched-card mb-3">
+        <div class="sched-card-header">
+          <span>📊 Gantt Chart (Động)</span>
+          <div class="gantt-legend" id="gantt-legend"></div>
+        </div>
+        <div class="sched-card-body p-2">
+          <div style="overflow-x:auto;">
+            <div id="gantt-chart" style="position:relative; min-height:120px; padding:8px 4px;">
+              <div class="text-center text-muted py-4" id="gantt-empty">Chưa có dữ liệu</div>
+            </div>
+          </div>
+          <div class="gantt-time-ruler" id="gantt-ruler"></div>
+        </div>
+      </div>
+
+      <!-- Algorithm-specific Panel -->
+      <!-- SJF Decision Panel -->
+      <div id="sjf-panel" class="sched-card {% if algorithm != 'sjf' %}d-none{% endif %}">
+        <div class="sched-card-header">
+          <span>🎯 SJF — Quyết Định Chọn Process</span>
+        </div>
+        <div class="sched-card-body p-3">
+          <div id="sjf-decision-text" class="decision-box mb-3"></div>
+          <div id="sjf-table-wrap" class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead><tr>
+                <th>Process</th><th>Burst Time</th><th>Thứ hạng</th><th>Lý do</th>
+              </tr></thead>
+              <tbody id="sjf-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- RR Panel -->
+      <div id="rr-panel" class="sched-card {% if algorithm != 'rr' %}d-none{% endif %}">
+        <div class="sched-card-header">
+          <span>🔄 Round Robin — Quantum & Queue</span>
+        </div>
+        <div class="sched-card-body p-3">
+          <div class="d-flex gap-3 mb-3 flex-wrap">
+            <div class="info-pill">⚡ Quantum = <strong>{{ quantum }}</strong> phút</div>
+            <div class="info-pill">🔀 Context Switches: <strong id="rr-ctx">0</strong></div>
+          </div>
+          <div id="rr-quantum-bar-wrap" class="mb-2">
+            <small class="text-muted d-block mb-1">Thời gian còn lại của quantum:</small>
+            <div class="progress" style="height:12px; border-radius:999px;">
+              <div id="rr-quantum-bar" class="progress-bar" style="width:100%; background:linear-gradient(90deg,#6366f1,#8b5cf6); transition:width 0.5s ease;"></div>
+            </div>
+          </div>
+          <!-- Task checklist -->
+          <div id="rr-task-panel">
+            <small class="text-muted d-block mb-2">Task Checklist (tiến trình đang chạy):</small>
+            <div id="rr-task-list" class="task-checklist"></div>
+          </div>
+          <div class="queue-after-display mt-3">
+            <small class="text-muted d-block mb-1">Queue sau bước này:</small>
+            <div id="rr-queue-after" class="queue-after-chips"></div>
+          </div>
+          <!-- Quantum History -->
+          <div class="mt-3">
+            <small class="text-muted d-block mb-2">📈 Quantum History:</small>
+            <div id="rr-quantum-history" class="quantum-history-track"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OMDRRS Panel -->
+      <div id="omdrrs-panel" class="sched-card {% if algorithm != 'omdrrs' %}d-none{% endif %}">
+        <div class="sched-card-header">
+          <span>⚡ OMDRRS — Decision Engine</span>
+          <span class="badge bg-purple">Round <span id="omdrrs-round">0</span></span>
+        </div>
+        <div class="sched-card-body p-3">
+          <!-- F-values -->
+          <div class="mb-3">
+            <small class="fw-semibold d-block mb-2">F-values trong Ready Queue:</small>
+            <div id="omdrrs-fvalues" class="fvalue-grid"></div>
+          </div>
+          <!-- Quantum history -->
+          <div class="mb-3">
+            <small class="fw-semibold d-block mb-2">📈 Quantum History:</small>
+            <div id="omdrrs-qhistory" class="quantum-history-track"></div>
+          </div>
+          <!-- Quantum reason -->
+          <div class="decision-box" id="omdrrs-reason-box">
+            <strong>Quantum mới:</strong> <span id="omdrrs-quantum-val">—</span> phút<br>
+            <strong>Lý do:</strong> <span id="omdrrs-reason-text" class="text-muted">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- FCFS extra info -->
+      <div id="fcfs-panel" class="sched-card {% if algorithm != 'fcfs' %}d-none{% endif %}">
+        <div class="sched-card-header">
+          <span>🕐 FCFS — Arrival Timeline</span>
+        </div>
+        <div class="sched-card-body p-3">
+          <div id="fcfs-arrival-list" class="arrival-timeline-list"></div>
+          <div class="decision-box mt-3" id="fcfs-decision-box"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /row -->
+
+  <!-- ═══ DETAIL TABLE ═══ -->
+  <div class="sched-card mt-3">
+    <div class="sched-card-header">
+      <span>📋 Bảng Chi Tiết Lập Lịch</span>
+    </div>
+    <div class="sched-card-body p-0">
+      <div class="table-responsive" style="max-height:280px;overflow-y:auto;">
+        <table class="table table-sm table-striped mb-0">
+          <thead class="sticky-top bg-white">
+            <tr>
+              <th>PID</th><th>Khách</th><th>Arrival</th><th>Burst</th>
+              <th>Start</th><th>End</th><th>Wait</th><th>TAT</th>
+            </tr>
+          </thead>
+          <tbody id="detail-tbody">
+            <tr><td colspan="8" class="text-center text-muted py-3">Chưa có dữ liệu</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CẤP PHÁT BỘ NHỚ CHO CPU (áp dụng chung cho FCFS/SJF/RR/OMDRRS) ═══ -->
+  <div class="row g-3 mt-3">
+    <div class="col-md-4">
+      <div class="sched-card">
+        <div class="sched-card-body p-3">
+          <div class="text-muted small">Tổng RAM hệ thống</div>
+          <h4 class="mb-0">{{ cpu_memory.total_ram }} MB</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="sched-card">
+        <div class="sched-card-body p-3">
+          <div class="text-muted small">RAM trống hiện tại</div>
+          <h4 class="mb-0">{{ cpu_memory.ram_free }} MB</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="sched-card">
+        <div class="sched-card-body p-3">
+          <div class="text-muted small">Công thức cấp phát mỗi lát cắt</div>
+          <h4 class="mb-0">{{ cpu_memory.mem_base }} + {{ cpu_memory.mem_per_minute }}×phút</h4>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sched-card mt-3">
+    <div class="sched-card-header">
+      <span>🧠 Cấp phát bộ nhớ cho CPU theo từng lát cắt ({{ algorithm_name }})</span>
+    </div>
+    <div class="sched-card-body p-0">
+      <div class="table-responsive" style="max-height:320px;overflow-y:auto;">
+        <table class="table table-sm table-striped mb-0">
+          <thead class="sticky-top bg-white">
+            <tr>
+              <th>Tiến trình</th>
+              <th>Phút chạy</th>
+              <th>RAM cần</th>
+              <th>Cấp phát</th>
+              <th>RAM trống sau</th>
+              <th style="min-width:360px;">Mô tả chi tiết (CPU → bộ nhớ → thu hồi)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in cpu_memory.rows %}
+            <tr>
+              <td>{{ row.name }}</td>
+              <td>{{ row.start }} → {{ row.end }} ({{ row.duration }}p)</td>
+              <td>{{ row.need_mem }}MB</td>
+              <td>
+                {% if row.allocated %}
+                  <span class="badge bg-success">Cấp {{ row.ram_used }}MB</span>
+                {% else %}
+                  <span class="badge bg-danger">Thiếu RAM</span>
+                {% endif %}
+              </td>
+              <td>{{ row.ram_free }}MB</td>
+              <td class="small text-muted">{{ row.description }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center text-muted py-3">Chưa có dữ liệu</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /sched-root -->
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ─── Import font ─── */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --sched-bg: #f0f2f8;
+    --card-bg: #ffffff;
+    --card-border: #e5e7eb;
+    --accent1: #6366f1;
+    --accent2: #ec4899;
+    --accent3: #10b981;
+    --accent4: #f59e0b;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  body { font-family: 'Inter', sans-serif; background: var(--sched-bg); }
+
+  .sched-root { max-width: 1600px; margin: 0 auto; }
+
+  .sched-kicker {
+    font-size: 11px; font-weight: 600; color: var(--accent1);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .sched-title { font-size: 1.6rem; font-weight: 700; color: var(--text-main); }
+
+  .badge-ctx {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white; border-radius: 999px; padding: 4px 12px;
+    font-size: 12px; font-weight: 600;
+  }
+
+  /* ─── Card ─── */
+  .sched-card {
+    background: var(--card-bg);
+    border-radius: 14px;
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .sched-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--card-border);
+    background: #fafafa;
+    font-weight: 600; font-size: 13px; color: var(--text-main);
+  }
+  .sched-card-body { padding: 12px; }
+
+  .sched-controls { border-radius: 14px; border: 1px solid var(--card-border); box-shadow: var(--shadow); }
+
+  /* ─── Stat mini ─── */
+  .stat-mini {
+    background: white;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    border-top: 3px solid var(--c, #6366f1);
+  }
+  .stat-mini small { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+  .stat-mini strong { display: block; font-size: 1.4rem; font-weight: 700; color: var(--c, #6366f1); }
+  .stat-mini span { font-size: 11px; color: var(--text-muted); }
+
+  /* ─── CPU status badge ─── */
+  .cpu-status-badge {
+    padding: 2px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 700;
+    background: #e5e7eb; color: #6b7280;
+    transition: all 0.3s ease;
+  }
+  .cpu-status-badge.running {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    animation: pulse-badge 1.5s infinite;
+  }
+  @keyframes pulse-badge {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+  }
+
+  /* ─── Process Card in Queue ─── */
+  .proc-chip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: 10px;
+    margin-bottom: 6px;
+    color: white; font-weight: 600; font-size: 13px;
+    transition: all 0.3s ease;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+  .proc-chip::before {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(255,255,255,0.15);
+    border-radius: inherit;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .proc-chip:hover::before { opacity: 1; }
+  .proc-chip .chip-burst { font-size: 11px; opacity: 0.85; }
+  .proc-chip .chip-name { flex: 1; }
+  .proc-chip.sjf-min-burst { box-shadow: 0 0 0 3px rgba(16,185,129,0.5), 0 4px 12px rgba(0,0,0,0.2); }
+  .proc-chip .sjf-star { font-size: 16px; }
+
+  /* ─── Running process panel ─── */
+  .running-proc {
+    border-radius: 12px;
+    padding: 16px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+  .running-proc::after {
+    content: ''; position: absolute;
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+    animation: shimmer 3s infinite linear;
+  }
+  @keyframes shimmer {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .running-proc .proc-name { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+  .running-proc .proc-info { font-size: 12px; opacity: 0.9; margin-bottom: 10px; }
+
+  /* ─── Task checklist ─── */
+  .task-checklist { display: flex; flex-direction: column; gap: 4px; }
+  .task-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 8px;
+    background: #f3f4f6; font-size: 12px;
+    transition: all 0.4s ease;
+  }
+  .task-item .task-icon {
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; flex-shrink: 0;
+    border: 2px solid #d1d5db;
+    transition: all 0.4s ease;
+  }
+  .task-item.done { background: #d1fae5; }
+  .task-item.done .task-icon {
+    background: #10b981; border-color: #10b981; color: white;
+    animation: check-pop 0.4s ease;
+  }
+  .task-item.partial { background: #fef3c7; }
+  .task-item.partial .task-icon { background: #f59e0b; border-color: #f59e0b; color: white; }
+  @keyframes check-pop {
+    0% { transform: scale(0); }
+    60% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+  .task-item.done .task-name { text-decoration: line-through; color: #6b7280; }
+
+  /* ─── Event log ─── */
+  .event-entry {
+    padding: 10px 12px; margin-bottom: 8px;
+    border-radius: 10px; font-size: 12px;
+    border-left: 4px solid #6366f1;
+    background: #f8f9ff;
+    animation: slideIn 0.3s ease;
+    position: relative;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .event-entry.arrival { border-left-color: #10b981; background: #f0fdf4; }
+  .event-entry.cpu-select { border-left-color: #8b5cf6; background: #faf5ff; }
+  .event-entry.complete { border-left-color: #06b6d4; background: #ecfeff; }
+  .event-entry.quantum-expire { border-left-color: #f59e0b; background: #fffbeb; }
+  .event-entry.idle { border-left-color: #d1d5db; background: #f9fafb; }
+  .event-time { font-weight: 700; color: #374151; font-size: 11px; display: block; margin-bottom: 3px; }
+  .event-queue { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .event-q-chip {
+    display: inline-block; padding: 1px 8px;
+    border-radius: 999px; font-size: 10px; font-weight: 600;
+    background: rgba(99,102,241,0.12); color: #4f46e5;
+  }
+
+  /* ─── Gantt Chart ─── */
+  .gantt-row {
+    display: flex; align-items: center; margin-bottom: 4px; height: 28px;
+  }
+  .gantt-label {
+    width: 60px; font-size: 11px; font-weight: 600;
+    color: var(--text-muted); flex-shrink: 0; text-align: right;
+    padding-right: 8px;
+  }
+  .gantt-track { position: relative; flex: 1; height: 24px; background: #f3f4f6; border-radius: 6px; overflow: visible; }
+  .gantt-seg {
+    position: absolute; height: 24px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: white;
+    cursor: pointer; transition: all 0.2s ease;
+    white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis;
+    animation: gantt-grow 0.4s ease-out;
+  }
+  @keyframes gantt-grow {
+    from { transform: scaleX(0); transform-origin: left; }
+    to { transform: scaleX(1); transform-origin: left; }
+  }
+  .gantt-seg:hover { transform: scaleY(1.3); z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+  .gantt-seg.current { box-shadow: 0 0 0 3px white, 0 0 0 5px currentColor, 0 0 12px rgba(0,0,0,0.2); z-index: 5; }
+  .gantt-time-ruler {
+    display: flex; justify-content: space-between;
+    padding: 2px 4px 0 64px;
+    font-size: 10px; color: var(--text-muted);
+  }
+  .gantt-legend { display: flex; gap: 8px; flex-wrap: wrap; }
+  .gantt-legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+  .gantt-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* ─── SJF ─── */
+  .decision-box {
+    background: linear-gradient(135deg, #f0f4ff, #f5f3ff);
+    border: 1px solid #c7d2fe;
+    border-radius: 10px; padding: 10px 14px; font-size: 12px;
+    color: #3730a3; line-height: 1.6;
+  }
+
+  /* ─── RR/OMDRRS Queue chips ─── */
+  .queue-after-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .q-chip {
+    padding: 2px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; color: white;
+    animation: fadeInChip 0.3s ease;
+  }
+  @keyframes fadeInChip { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+
+  /* ─── Info pill ─── */
+  .info-pill {
+    background: #f0f4ff; border: 1px solid #c7d2fe;
+    border-radius: 999px; padding: 4px 12px;
+    font-size: 12px; color: #4f46e5;
+  }
+
+  /* ─── OMDRRS F-values ─── */
+  .fvalue-grid { display: flex; flex-direction: column; gap: 6px; }
+  .fvalue-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 8px;
+    background: #f8f9fa; font-size: 12px;
+    transition: all 0.3s ease;
+  }
+  .fvalue-row.selected-f {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    border: 1px solid #10b981; font-weight: 600;
+  }
+  .fvalue-badge {
+    background: #6366f1; color: white; border-radius: 6px;
+    padding: 2px 6px; font-size: 10px; font-weight: 700; min-width: 48px; text-align: center;
+  }
+  .fvalue-bar {
+    flex: 1; height: 8px; background: #e5e7eb;
+    border-radius: 999px; overflow: hidden;
+  }
+  .fvalue-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    transition: width 0.4s ease;
+  }
+  .fvalue-row.selected-f .fvalue-bar-fill { background: linear-gradient(90deg, #10b981, #059669); }
+
+  /* ─── Quantum history ─── */
+  .quantum-history-track { display: flex; gap: 8px; flex-wrap: wrap; }
+  .q-history-item {
+    display: flex; flex-direction: column; align-items: center;
+    background: #f0f4ff; border: 1px solid #c7d2fe;
+    border-radius: 8px; padding: 4px 10px; font-size: 11px;
+    transition: all 0.3s ease;
+  }
+  .q-history-item.current-q {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white; border-color: #6366f1;
+    transform: scale(1.1);
+  }
+  .q-history-item .qh-round { font-size: 9px; color: currentColor; opacity: 0.7; }
+  .q-history-item .qh-val { font-weight: 700; font-size: 14px; }
+
+  /* ─── FCFS arrival timeline ─── */
+  .arrival-timeline-list { display: flex; flex-direction: column; gap: 6px; }
+  .arrival-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 10px; border-radius: 8px;
+    background: #f0fdf4; border-left: 3px solid #10b981;
+    font-size: 12px; transition: all 0.3s;
+  }
+  .arrival-item.past { opacity: 0.5; }
+  .arrival-item.current-arrival {
+    background: #d1fae5; font-weight: 600;
+    animation: highlight-arrival 0.5s ease;
+  }
+  @keyframes highlight-arrival {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+  .arrival-time-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #10b981; color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; flex-shrink: 0;
+  }
+
+  /* ─── Badge purple ─── */
+  .bg-purple { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+
+  /* ─── Detail table ─── */
+  .table > :not(caption) > * > * { padding: 6px 10px; }
+  .table thead th { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+
+  /* ─── Animations ─── */
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  
+  /* Animation Running → Ready Queue */
+  @keyframes runningToQueue {
+    0% { transform: translateX(0); opacity: 1; }
+    50% { transform: translateX(20px); opacity: 0.5; }
+    100% { transform: translateX(0); opacity: 1; }
+  }
+  .proc-chip.animating {
+    animation: runningToQueue 0.5s ease-in-out;
+  }
+  
+  /* Animation khi quantum hết */
+  @keyframes quantumExpire {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+    50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  }
+  .quantum-expire-anim {
+    animation: quantumExpire 0.6s ease-out;
+  }
+  
+  /* Animation khi process mới được chọn */
+  @keyframes processSelected {
+    0% { transform: scale(0.9); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .process-selected-anim {
+    animation: processSelected 0.4s ease-out;
+  }
+
+  /* ─── Mobile ─── */
+  @media (max-width: 992px) {
+    .sched-title { font-size: 1.2rem; }
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+'use strict';
+
+// ═══════════════════════════════════════════════
+// DATA FROM SERVER
+// ═══════════════════════════════════════════════
+const PROCESSES = JSON.parse('{{ processes_json|escapejs }}');
+const EVENTS    = JSON.parse('{{ events_json|escapejs }}');
+const ALGORITHM = '{{ algorithm }}';
+const QUANTUM   = {{ quantum }};
+const STATS     = {{ stats|safe }};
+const TIMELINE  = JSON.parse('{{ timeline_json|escapejs }}');
+
+// ═══════════════════════════════════════════════
+// PALETTE
+// ═══════════════════════════════════════════════
+const PALETTE = [
+  '#6366f1','#ec4899','#10b981','#f59e0b','#8b5cf6',
+  '#06b6d4','#f97316','#ef4444','#14b8a6','#84cc16'
+];
+function color(pid) { return PALETTE[(pid - 1) % PALETTE.length]; }
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let step = -1;
+let playing = false;
+let timer = null;
+let speed = 1000;
+let contextSwitches = 0;
+let eventLogEntries = [];
+
+const totalSteps = EVENTS.length;
+document.getElementById('prog-total').textContent = totalSteps;
+
+// ═══════════════════════════════════════════════
+// GANTT SETUP — pre-compute rows
+// ═══════════════════════════════════════════════
+const ganttRows = {};   // pid -> { name, segments[] }
+EVENTS.forEach(ev => {
+  if (!ganttRows[ev.pid]) ganttRows[ev.pid] = { name: ev.name, pid: ev.pid, segments: [] };
+  ganttRows[ev.pid].segments.push(ev);
+});
+const maxTime = EVENTS.length > 0 ? Math.max(...EVENTS.map(e => e.end)) : 1;
+const ganttChart = document.getElementById('gantt-chart');
+const ganttRuler = document.getElementById('gantt-ruler');
+
+function initGantt() {
+  ganttChart.innerHTML = '';
+  const legend = document.getElementById('gantt-legend');
+  legend.innerHTML = '';
+
+  Object.values(ganttRows).forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'gantt-row';
+    rowEl.innerHTML = `<div class="gantt-label">${row.name.split('—')[0].trim()}</div>
+      <div class="gantt-track" id="gt-${row.pid}"></div>`;
+    ganttChart.appendChild(rowEl);
+
+    legend.innerHTML += `<div class="gantt-legend-item">
+      <div class="gantt-legend-dot" style="background:${color(row.pid)}"></div>
+      <span>${row.name.split('—')[0].trim()}</span>
+    </div>`;
+  });
+
+  // Ruler
+  const ticks = 6;
+  ganttRuler.innerHTML = Array.from({length: ticks + 1}, (_, i) =>
+    `<span>${Math.round(i * maxTime / ticks)}</span>`
+  ).join('');
+
+  if (Object.keys(ganttRows).length === 0) {
+    ganttChart.innerHTML = '<div class="text-center text-muted py-3">Chưa có dữ liệu</div>';
+  }
+}
+
+function renderGanttStep(currentStep) {
+  // Remove current highlight
+  document.querySelectorAll('.gantt-seg.current').forEach(el => el.classList.remove('current'));
+
+  // Render segments up to current step
+  EVENTS.slice(0, currentStep + 1).forEach((ev, idx) => {
+    const trackId = `gt-${ev.pid}`;
+    const track = document.getElementById(trackId);
+    if (!track) return;
+
+    const segId = `gs-${ev.pid}-${idx}`;
+    if (!document.getElementById(segId)) {
+      const pct_left = (ev.start / maxTime) * 100;
+      const pct_width = Math.max(0.5, (ev.duration / maxTime) * 100);
+      const seg = document.createElement('div');
+      seg.className = 'gantt-seg';
+      seg.id = segId;
+      seg.style.left = pct_left + '%';
+      seg.style.width = pct_width + '%';
+      seg.style.background = color(ev.pid);
+      seg.title = `${ev.name}: ${ev.start}→${ev.end} phút (${ev.duration} phút)`;
+      seg.textContent = ev.duration >= 2 ? `${ev.start}-${ev.end}` : '';
+      track.appendChild(seg);
+    }
+
+    if (idx === currentStep) {
+      const el = document.getElementById(segId);
+      if (el) el.classList.add('current');
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+// EVENT LOG
+// ═══════════════════════════════════════════════
+function buildEventLog(currentStep) {
+  if (currentStep < 0) {
+    document.getElementById('event-log').innerHTML =
+      '<div class="text-center text-muted py-4" id="event-empty"><div style="font-size:2rem">📭</div><div>Nhấn ▶ để bắt đầu mô phỏng</div></div>';
+    document.getElementById('event-count').textContent = '0 sự kiện';
+    return;
+  }
+
+  const ev = EVENTS[currentStep];
+  const prevEv = currentStep > 0 ? EVENTS[currentStep - 1] : null;
+
+  // Build entries for this step
+  const entries = [];
+
+  // Arrival events - Hiển thị rõ thời gian arrival
+  if (ev.arrival_events && ev.arrival_events.length > 0) {
+    const arrivedAtStep = ev.arrival_events.filter(a => a.time <= ev.start && a.time >= (prevEv ? prevEv.start : 0));
+    arrivedAtStep.forEach(a => {
+      entries.push({
+        type: 'arrival',
+        html: `<span class="event-time">⏰ Phút ${a.time}</span>
+               <strong>${a.name}</strong> đến hệ thống${a.customer_name && a.customer_name !== a.name ? ` (${a.customer_name})` : ''}
+               <div style="margin-top:4px;font-size:11px;color:#6b7280">→ Thêm vào Ready Queue</div>`,
+      });
+    });
+  }
+
+  // Ready Queue state before decision - Hiển thị rõ queue
+  const queueNames = ev.queue_state_names && ev.queue_state_names.length > 0
+    ? ev.queue_state_names
+    : (ev.ready_before_names || []);
+
+  if (queueNames.length > 0 || ev.queue_state_names !== undefined) {
+    const queueDisplay = queueNames.length > 0
+      ? queueNames.map(n => `<span class="event-q-chip">${n}</span>`).join(' ')
+      : '<span class="text-muted">trống</span>';
+    entries.push({
+      type: 'idle',
+      html: `<span class="event-time">📋 Ready Queue lúc phút ${ev.start}:</span>
+             <div class="event-queue">${queueDisplay}</div>`,
+    });
+  }
+
+  // CPU Decision - Hiển thị rõ lý do chọn
+  const selType = ev.quantum_expired ? 'quantum-expire' : 'cpu-select';
+  let decisionHtml = `<span class="event-time">🖥️ CPU chọn: <strong>${ev.name}</strong></span>`;
+  
+  // Hiển lý do chi tiết theo từng thuật toán
+  if (ALGORITHM === 'fcfs') {
+    decisionHtml += `<div style="margin-top:4px;font-size:11px;color:#4f46e5">Lý do: ${ev.decision_reason || 'Đến trước phục vụ trước'}</div>`;
+  } else if (ALGORITHM === 'sjf') {
+    decisionHtml += `<div style="margin-top:4px;font-size:11px;color:#4f46e5">Lý do: Burst Time nhỏ nhất trong Ready Queue</div>`;
+    if (ev.sjf_comparison && ev.sjf_comparison.length > 0) {
+      decisionHtml += `<div style="margin-top:2px;font-size:10px;color:#6b7280">Burst: ${ev.burst} phút (nhỏ nhất)</div>`;
+    }
+  } else if (ALGORITHM === 'rr') {
+    decisionHtml += `<div style="margin-top:4px;font-size:11px;color:#4f46e5">Lý do: Lượt theo Round Robin (Quantum = ${QUANTUM} phút)</div>`;
+  } else if (ALGORITHM === 'omdrrs') {
+    decisionHtml += `<div style="margin-top:4px;font-size:11px;color:#4f46e5">Lý do: F-value nhỏ nhất trong Ready Queue</div>`;
+    if (ev.f_values && ev.f_values.length > 0) {
+      const selectedF = ev.f_values.find(f => f.selected);
+      if (selectedF) {
+        decisionHtml += `<div style="margin-top:2px;font-size:10px;color:#6b7280">F-value: ${selectedF.f} (nhỏ nhất)</div>`;
+      }
+    }
+  } else {
+    decisionHtml += `<div style="margin-top:4px;font-size:11px;color:#4f46e5">${ev.decision_reason || ev.message || ''}</div>`;
+  }
+  
+  entries.push({
+    type: 'cpu-select',
+    html: decisionHtml,
+  });
+
+  // Execution - Hiển thị rõ thời gian chạy
+  let execHtml = `<span class="event-time">▶ Chạy: phút ${ev.start} → ${ev.end} (${ev.duration} phút)</span>`;
+  if (ev.remaining_after !== undefined && ev.remaining_after !== null) {
+    execHtml += `<div style="font-size:11px">Còn lại: <strong>${ev.remaining_after}</strong> phút</div>`;
+  }
+  if (ALGORITHM === 'rr' || ALGORITHM === 'omdrrs') {
+    execHtml += `<div style="font-size:10px;color:#6b7280">Quantum: ${ev.quantum || QUANTUM} phút</div>`;
+  }
+  entries.push({
+    type: ev.quantum_expired ? 'quantum-expire' : (ev.remaining_after === 0 ? 'complete' : 'idle'),
+    html: execHtml,
+  });
+
+  // Queue after (RR/OMDRRS) - Hiển thị rõ khi quantum hết
+  if (ev.quantum_expired && ev.queue_after_names && ev.queue_after_names.length > 0) {
+    const afterDisplay = ev.queue_after_names.map(n => `<span class="event-q-chip">${n}</span>`).join(' ');
+    entries.push({
+      type: 'quantum-expire',
+      html: `<span class="event-time">🔀 Hết quantum! ${ev.name} → cuối queue</span>
+             <div class="event-queue mt-1">${afterDisplay}</div>
+             <div style="font-size:10px;color:#6b7280">Animation: Running → Ready Queue</div>`,
+    });
+  }
+
+  // Complete - Hiển thị rõ khi hoàn thành
+  if (!ev.quantum_expired && ev.remaining_after === 0) {
+    entries.push({
+      type: 'complete',
+      html: `<span class="event-time">✅ ${ev.name} hoàn thành tại phút ${ev.end}</span>
+             <div style="font-size:11px;color:#6b7280">Tổng thời gian chờ: ${ev.wait || 0} phút | Turnaround: ${ev.tat || 0} phút</div>`,
+    });
+  }
+
+  // Append to persistent log
+  eventLogEntries = eventLogEntries.slice(0, currentStep * 10);  // trim
+  entries.forEach(e => eventLogEntries.push(e));
+
+  const logEl = document.getElementById('event-log');
+  logEl.innerHTML = eventLogEntries.slice(-50).map(e =>
+    `<div class="event-entry ${e.type}">${e.html}</div>`
+  ).join('');
+  logEl.scrollTop = logEl.scrollHeight;
+  document.getElementById('event-count').textContent = `${currentStep + 1} bước`;
+}
+
+// ═══════════════════════════════════════════════
+// READY QUEUE PANEL
+// ═══════════════════════════════════════════════
+function renderReadyQueue(currentStep) {
+  const panel = document.getElementById('ready-queue-panel');
+  if (currentStep < 0 || EVENTS.length === 0) {
+    panel.innerHTML = '<div class="text-center text-muted py-2" id="queue-empty">Queue trống</div>';
+    document.getElementById('queue-count-badge').textContent = '0';
+    return;
+  }
+
+  const ev = EVENTS[currentStep];
+  const currentPid = ev.pid;
+  const currentTime = ev.end;
+
+  // Determine which processes are in queue (arrived, not yet finished, not currently running)
+  const finishedPids = new Set();
+  for (let i = 0; i < currentStep; i++) {
+    const e = EVENTS[i];
+    if (e.remaining_after === 0 || (ALGORITHM !== 'rr' && ALGORITHM !== 'omdrrs')) {
+      if (!EVENTS.slice(i+1).some(ne => ne.pid === e.pid)) {
+        finishedPids.add(e.pid);
+      }
+    }
+  }
+
+  // Get queue from event data
+  let queueNames = ev.queue_after_names || [];
+  let queuePids = ev.queue_after || [];
+
+  // Fallback: compute from processes
+  if (queueNames.length === 0) {
+    const readyProcs = PROCESSES.filter(p =>
+      p.arrival <= currentTime && p.pid !== currentPid && !finishedPids.has(p.pid)
+    );
+    queuePids = readyProcs.map(p => p.pid);
+    queueNames = readyProcs.map(p => p.name);
+  }
+
+  document.getElementById('queue-count-badge').textContent = queuePids.length;
+
+  if (queuePids.length === 0) {
+    panel.innerHTML = '<div class="text-center text-muted py-2">Queue trống</div>';
+    return;
+  }
+
+  // Determine min burst for SJF highlight
+  let minBurst = null;
+  if (ALGORITHM === 'sjf' && ev.sjf_comparison && ev.sjf_comparison.length > 0) {
+    minBurst = Math.min(...ev.sjf_comparison.map(c => c.burst));
+  }
+
+  // Hiển thị thông tin queue theo từng thuật toán
+  let queueInfo = '';
+  if (ALGORITHM === 'fcfs') {
+    queueInfo = '<div style="font-size:10px;color:#6b7280;margin-bottom:8px">FCFS: Đến trước phục vụ trước</div>';
+  } else if (ALGORITHM === 'sjf') {
+    queueInfo = '<div style="font-size:10px;color:#6b7280;margin-bottom:8px">SJF: Chọn Burst nhỏ nhất ⭐</div>';
+  } else if (ALGORITHM === 'rr') {
+    queueInfo = '<div style="font-size:10px;color:#6b7280;margin-bottom:8px">RR: Lượt theo Round Robin</div>';
+  } else if (ALGORITHM === 'omdrrs') {
+    queueInfo = '<div style="font-size:10px;color:#6b7280;margin-bottom:8px">OMDRRS: Chọn F-value nhỏ nhất</div>';
+  }
+
+  const chips = queuePids.map((pid, i) => {
+    const proc = PROCESSES.find(p => p.pid === pid) || {};
+    const name = queueNames[i] || proc.name || `P${pid}`;
+    const burst = proc.burst || '?';
+    const isMin = minBurst !== null && proc.burst === minBurst;
+    const comparison = ev.sjf_comparison ? ev.sjf_comparison.find(c => c.pid === pid) : null;
+    
+    // Animation khi process mới được thêm vào queue (RR/OMDRRS)
+    const isNewInQueue = (ALGORITHM === 'rr' || ALGORITHM === 'omdrrs') && 
+                         ev.quantum_expired && 
+                         ev.queue_after && ev.queue_after.includes(pid);
+    const animClass = isNewInQueue ? 'animating' : '';
+    
+    let extra = '';
+    if (ALGORITHM === 'sjf') {
+      extra = `<span class="chip-burst">Burst: ${burst} phút${isMin ? '' : ''}</span>`;
+      if (isMin) extra += `<span class="sjf-star">⭐</span>`;
+    } else if (ALGORITHM === 'rr' || ALGORITHM === 'omdrrs') {
+      const rem = comparison ? comparison.remaining : (proc.burst || '?');
+      extra = `<span class="chip-burst">Còn: ${rem} phút</span>`;
+    } else {
+      extra = `<span class="chip-burst">Burst: ${burst} phút</span>`;
+    }
+    return `<div class="proc-chip ${isMin ? 'sjf-min-burst' : ''} ${animClass}" style="background:${color(pid)}">
+      <span class="chip-name">${name.split('—')[0].trim()}</span>
+      ${extra}
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = queueInfo + chips;
+}
+
+// ═══════════════════════════════════════════════
+// RUNNING PROCESS PANEL
+// ═══════════════════════════════════════════════
+function renderRunningProcess(currentStep) {
+  const panel = document.getElementById('running-panel');
+  const badge = document.getElementById('cpu-status-badge');
+
+  if (currentStep < 0 || EVENTS.length === 0) {
+    panel.innerHTML = '<div class="text-center text-muted py-4" id="running-empty"><div style="font-size:2rem">💤</div><div>CPU đang rảnh</div></div>';
+    badge.className = 'cpu-status-badge';
+    badge.textContent = 'IDLE';
+    return;
+  }
+
+  const ev = EVENTS[currentStep];
+  badge.className = 'cpu-status-badge running';
+  badge.textContent = 'RUNNING';
+
+  // Time used tracker
+  let timeUsedBefore = 0;
+  for (let i = 0; i < currentStep; i++) {
+    if (EVENTS[i].pid === ev.pid) timeUsedBefore += EVENTS[i].duration || 0;
+  }
+  const proc = PROCESSES.find(p => p.pid === ev.pid) || {};
+  const burst = proc.burst || ev.burst || 1;
+  const progress = Math.min(100, ((timeUsedBefore + (ev.duration || 0)) / burst) * 100);
+  const c = color(ev.pid);
+
+  // Task checklist for running panel (RR/OMDRRS) - Hiển thị rõ hơn
+  let taskHtml = '';
+  if ((ALGORITHM === 'rr' || ALGORITHM === 'omdrrs') && ev.task_checklist_after && ev.task_checklist_after.length > 0) {
+    taskHtml = `<div style="margin-top:12px">
+      <div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:6px">📋 Task Checklist:</div>
+      <div class="task-checklist">` +
+      ev.task_checklist_after.map(t => `
+        <div class="task-item ${t.done ? 'done' : t.partial ? 'partial' : ''}">
+          <div class="task-icon">${t.done ? '✓' : t.partial ? '…' : '○'}</div>
+          <span class="task-name">${t.name} <small style="opacity:.6">(${t.duration} phút)</small></span>
+          ${t.done ? '<span style="margin-left:auto;color:#10b981;font-size:10px">✓ Hoàn thành</span>' : 
+            t.partial ? '<span style="margin-left:auto;color:#f59e0b;font-size:10px">… Đang làm</span>' : ''}
+        </div>`).join('') +
+      `</div></div>`;
+  }
+
+  // Hiển thị thông tin chi tiết theo từng thuật toán
+  let algorithmInfo = '';
+  if (ALGORITHM === 'fcfs') {
+    algorithmInfo = '<div style="font-size:10px;color:#6b7280;margin-top:4px">FCFS: Đến trước phục vụ trước</div>';
+  } else if (ALGORITHM === 'sjf') {
+    algorithmInfo = '<div style="font-size:10px;color:#6b7280;margin-top:4px">SJF: Chọn Burst nhỏ nhất</div>';
+  } else if (ALGORITHM === 'rr') {
+    algorithmInfo = `<div style="font-size:10px;color:#6b7280;margin-top:4px">RR: Quantum = ${QUANTUM} phút</div>`;
+  } else if (ALGORITHM === 'omdrrs') {
+    algorithmInfo = `<div style="font-size:10px;color:#6b7280;margin-top:4px">OMDRRS: Quantum = ${ev.quantum || QUANTUM} phút</div>`;
+  }
+
+  // Animation khi quantum hết
+  const quantumExpireClass = ev.quantum_expired ? 'quantum-expire-anim' : '';
+  
+  panel.innerHTML = `
+    <div class="running-proc ${quantumExpireClass}" style="background:linear-gradient(135deg, ${c}, ${c}cc)">
+      <div class="proc-name">${ev.name}</div>
+      <div class="proc-info">
+        Chạy: ${ev.start} → ${ev.end} phút (${ev.duration} phút)
+        ${ev.remaining_after !== undefined && ev.remaining_after !== null
+          ? `&nbsp;|&nbsp; Còn lại: <strong>${ev.remaining_after}</strong> phút` : ''}
+      </div>
+      <div class="progress mb-1" style="height:8px; border-radius:999px; background:rgba(255,255,255,0.25)">
+        <div class="progress-bar" style="width:${progress}%; background:rgba(255,255,255,0.8); border-radius:999px;"></div>
+      </div>
+      <div style="font-size:10px; opacity:0.8; text-align:right">${Math.round(progress)}% hoàn thành</div>
+      ${algorithmInfo}
+      ${taskHtml}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// SJF PANEL
+// ═══════════════════════════════════════════════
+function renderSJFPanel(currentStep) {
+  const panel = document.getElementById('sjf-panel');
+  if (!panel || ALGORITHM !== 'sjf') return;
+
+  if (currentStep < 0) {
+    document.getElementById('sjf-tbody').innerHTML = '<tr><td colspan="4" class="text-muted">Chưa có dữ liệu</td></tr>';
+    document.getElementById('sjf-decision-text').innerHTML = '';
+    return;
+  }
+
+  const ev = EVENTS[currentStep];
+  document.getElementById('sjf-decision-text').innerHTML = ev.decision_reason || ev.message || '';
+
+  if (!ev.sjf_comparison || ev.sjf_comparison.length === 0) {
+    document.getElementById('sjf-tbody').innerHTML = '<tr><td colspan="4" class="text-muted">—</td></tr>';
+    return;
+  }
+
+  document.getElementById('sjf-tbody').innerHTML = ev.sjf_comparison.map(c => `
+    <tr style="${c.selected ? 'background:#d1fae5; font-weight:600;' : ''}">
+      <td>${c.name}</td>
+      <td><strong>${c.burst}</strong> phút</td>
+      <td>${c.rank === 1 ? '🥇 #1' : `#${c.rank}`}</td>
+      <td style="color:${c.selected ? '#059669' : '#6b7280'}">${c.reason}</td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// RR PANEL
+// ═══════════════════════════════════════════════
+function renderRRPanel(currentStep) {
+  const panel = document.getElementById('rr-panel');
+  if (!panel || ALGORITHM !== 'rr') return;
+
+  if (currentStep < 0) {
+    document.getElementById('rr-task-list').innerHTML = '';
+    document.getElementById('rr-queue-after').innerHTML = '';
+    document.getElementById('rr-quantum-bar').style.width = '100%';
+    document.getElementById('rr-ctx').textContent = '0';
+    return;
+  }
+
+  const ev = EVENTS[currentStep];
+
+  // Context switches
+  let ctx = 0;
+  for (let i = 1; i <= currentStep; i++) {
+    if (EVENTS[i].pid !== EVENTS[i-1].pid) ctx++;
+  }
+  document.getElementById('rr-ctx').textContent = ctx;
+
+  // Quantum bar
+  const sliceUsed = ev.duration || 0;
+  const quantumPct = Math.max(0, ((QUANTUM - sliceUsed) / QUANTUM) * 100);
+  document.getElementById('rr-quantum-bar').style.width = quantumPct + '%';
+
+  // Task checklist
+  const tasks = ev.task_checklist_after || [];
+  document.getElementById('rr-task-list').innerHTML = tasks.length > 0
+    ? tasks.map(t => `
+        <div class="task-item ${t.done ? 'done' : t.partial ? 'partial' : ''}">
+          <div class="task-icon">${t.done ? '✓' : t.partial ? '…' : ''}</div>
+          <span class="task-name">${t.name} <small style="opacity:.6">(${t.duration} phút)</small></span>
+        </div>`).join('')
+    : '<div class="text-muted small">Chưa có task</div>';
+
+  // Queue after chips
+  const qAfterNames = ev.queue_after_names || [];
+  const qAfterPids = ev.queue_after || [];
+  document.getElementById('rr-queue-after').innerHTML = qAfterPids.length > 0
+    ? qAfterPids.map((pid, i) => `
+        <span class="q-chip" style="background:${color(pid)}">${qAfterNames[i] || 'P'+pid}</span>
+      `).join('')
+    : '<span class="text-muted small">Queue trống</span>';
+
+  // Quantum History cho Round Robin
+  const quantumHistory = [];
+  for (let i = 0; i <= currentStep; i++) {
+    const stepEv = EVENTS[i];
+    if (stepEv && stepEv.quantum !== undefined) {
+      quantumHistory.push({
+        round: i + 1,
+        quantum: stepEv.quantum
+      });
+    }
+  }
+  
+  // Hiển thị Quantum History
+  const qHistoryContainer = document.getElementById('rr-quantum-history');
+  if (qHistoryContainer) {
+    qHistoryContainer.innerHTML = quantumHistory.length > 0
+      ? quantumHistory.map(h => `
+          <div class="q-history-item ${h.round === currentStep + 1 ? 'current-q' : ''}">
+            <span class="qh-round">Round ${h.round}</span>
+            <span class="qh-val">${h.quantum}</span>
+          </div>`).join('')
+      : '<div class="text-muted small">Chưa có lịch sử</div>';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// OMDRRS PANEL
+// ═══════════════════════════════════════════════
+function renderOMDRRSPanel(currentStep) {
+  const panel = document.getElementById('omdrrs-panel');
+  if (!panel || ALGORITHM !== 'omdrrs') return;
+
+  if (currentStep < 0) {
+    document.getElementById('omdrrs-fvalues').innerHTML = '';
+    document.getElementById('omdrrs-qhistory').innerHTML = '';
+    document.getElementById('omdrrs-quantum-val').textContent = '—';
+    document.getElementById('omdrrs-reason-text').textContent = '—';
+    document.getElementById('omdrrs-round').textContent = '0';
+    return;
+  }
+
+  const ev = EVENTS[currentStep];
+  document.getElementById('omdrrs-round').textContent = ev.round_number || currentStep + 1;
+  document.getElementById('omdrrs-quantum-val').textContent = ev.quantum_new || ev.quantum || '—';
+  document.getElementById('omdrrs-reason-text').textContent = ev.quantum_reason || '—';
+
+  // F-values
+  const fvals = ev.f_values || [];
+  const maxF = Math.max(...fvals.map(f => f.f), 1);
+  document.getElementById('omdrrs-fvalues').innerHTML = fvals.length > 0
+    ? fvals.map(f => `
+        <div class="fvalue-row ${f.selected ? 'selected-f' : ''}">
+          <span style="min-width:80px; font-size:11px; font-weight:${f.selected ? '700' : '500'}">${f.name}</span>
+          <div class="fvalue-badge">F=${f.f}</div>
+          <div class="fvalue-bar">
+            <div class="fvalue-bar-fill" style="width:${Math.min(100, (f.f / maxF) * 100)}%"></div>
+          </div>
+          <span style="font-size:10px; color:#6b7280; min-width:50px">Còn: ${f.remaining}p</span>
+          ${f.selected ? '<span style="color:#10b981; font-weight:700">✓ Chọn</span>' : ''}
+        </div>`).join('')
+    : '<div class="text-muted small">Không có dữ liệu F-values</div>';
+
+  // Quantum history
+  const qhist = ev.quantum_history || [];
+  const currentRound = ev.round_number || currentStep + 1;
+  document.getElementById('omdrrs-qhistory').innerHTML = qhist.length > 0
+    ? qhist.map(h => `
+        <div class="q-history-item ${h.round === currentRound ? 'current-q' : ''}">
+          <span class="qh-round">Round ${h.round}</span>
+          <span class="qh-val">${h.quantum}</span>
+        </div>`).join('')
+    : '<div class="text-muted small">Chưa có lịch sử</div>';
+}
+
+// ═══════════════════════════════════════════════
+// FCFS PANEL
+// ═══════════════════════════════════════════════
+function renderFCFSPanel(currentStep) {
+  const panel = document.getElementById('fcfs-panel');
+  if (!panel || ALGORITHM !== 'fcfs') return;
+
+  if (currentStep < 0) {
+    document.getElementById('fcfs-arrival-list').innerHTML = '';
+    document.getElementById('fcfs-decision-box').innerHTML = '';
+    return;
+  }
+
+  const ev = EVENTS[currentStep];
+  const arrivals = ev.arrival_events || [];
+
+  document.getElementById('fcfs-arrival-list').innerHTML = arrivals.length > 0
+    ? arrivals.map(a => {
+        const isCurrent = a.pid === ev.pid;
+        const isPast = a.time < ev.start;
+        return `<div class="arrival-item ${isCurrent ? 'current-arrival' : isPast ? 'past' : ''}">
+          <div class="arrival-time-dot">${a.arrival_time || `t+${a.time}`}</div>
+          <div>
+            <div class="small text-muted">${a.arrival_display || `t+${a.time} phút`}</div>
+            <strong>${a.name}</strong>${a.customer_name && a.customer_name !== a.name ? ` — ${a.customer_name}` : ''}
+            ${isCurrent ? ' <span style="color:#059669;font-weight:700">← Đang chạy</span>' : ''}
+          </div>
+        </div>`;
+      }).join('')
+    : '<div class="text-muted small">Không có dữ liệu</div>';
+
+  document.getElementById('fcfs-decision-box').innerHTML = ev.decision_reason || ev.message || '';
+}
+
+// ═══════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════
+function renderStats(currentStep) {
+  if (currentStep >= 0) {
+    document.getElementById('stat-wait').textContent = (STATS.avg_wait || 0).toFixed(1);
+    document.getElementById('stat-tat').textContent = (STATS.avg_tat || 0).toFixed(1);
+    document.getElementById('stat-resp').textContent = (STATS.avg_response || 0).toFixed(1);
+    document.getElementById('stat-util').textContent = (STATS.cpu_util || 0).toFixed(1);
+  } else {
+    ['stat-wait','stat-tat','stat-resp','stat-util'].forEach(id =>
+      document.getElementById(id).textContent = '—');
+  }
+
+  // Context switches
+  let ctx = 0;
+  for (let i = 1; i <= currentStep; i++) {
+    if (EVENTS[i] && EVENTS[i-1] && EVENTS[i].pid !== EVENTS[i-1].pid) ctx++;
+  }
+  document.getElementById('ctx-switch-badge').textContent = `🔄 Context Switches: ${ctx}`;
+}
+
+// ═══════════════════════════════════════════════
+// PROGRESS
+// ═══════════════════════════════════════════════
+function renderProgress(currentStep) {
+  document.getElementById('prog-step').textContent = currentStep + 1;
+  const pct = totalSteps > 0 ? ((currentStep + 1) / totalSteps) * 100 : 0;
+  document.getElementById('prog-bar').style.width = Math.max(0, pct) + '%';
+  if (currentStep >= 0 && EVENTS[currentStep]) {
+    document.getElementById('prog-time').textContent = EVENTS[currentStep].end;
+  } else {
+    document.getElementById('prog-time').textContent = '0';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// DETAIL TABLE
+// ═══════════════════════════════════════════════
+function renderDetailTable() {
+  const tbody = document.getElementById('detail-tbody');
+  if (!TIMELINE || TIMELINE.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Chưa có dữ liệu</td></tr>';
+    return;
+  }
+  tbody.innerHTML = TIMELINE.map(row => `
+    <tr>
+      <td><strong style="color:${color(row.pid)}">P${row.pid}</strong></td>
+      <td>${row.name || '—'}</td>
+      <td>${row.arrival_display || row.arrival_label || (row.arrival !== undefined ? `t+${row.arrival} phút` : '—')}</td>
+      <td>${row.burst !== undefined ? row.burst : '—'}</td>
+      <td>${row.start !== undefined ? row.start : '—'}</td>
+      <td>${row.end !== undefined ? row.end : '—'}</td>
+      <td>${row.wait !== undefined ? row.wait.toFixed(1) : '—'}</td>
+      <td>${row.tat !== undefined ? row.tat.toFixed(1) : '—'}</td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// MASTER RENDER
+// ═══════════════════════════════════════════════
+function goToStep(s) {
+  step = Math.max(-1, Math.min(s, totalSteps - 1));
+  renderProgress(step);
+  renderRunningProcess(step);
+  renderReadyQueue(step);
+  renderGanttStep(step);
+  renderStats(step);
+  buildEventLog(step);
+  renderSJFPanel(step);
+  renderRRPanel(step);
+  renderOMDRRSPanel(step);
+  renderFCFSPanel(step);
+}
+
+function reset() {
+  pause();
+  eventLogEntries = [];
+  step = -1;
+  goToStep(-1);
+  // Clear gantt segments
+  Object.keys(ganttRows).forEach(pid => {
+    const track = document.getElementById(`gt-${pid}`);
+    if (track) track.innerHTML = '';
+  });
+  document.getElementById('prog-step').textContent = '0';
+  document.getElementById('prog-bar').style.width = '0%';
+  document.getElementById('prog-time').textContent = '0';
+}
+
+function play() {
+  if (playing) { pause(); return; }
+  if (step >= totalSteps - 1) { step = -1; eventLogEntries = []; }
+  playing = true;
+  document.getElementById('btn-play').textContent = '⏸ Pause';
+  document.getElementById('btn-play').className = 'btn btn-sm btn-warning';
+
+  const tick = () => {
+    if (!playing) return;
+    goToStep(step + 1);
+    if (step < totalSteps - 1) {
+      timer = setTimeout(tick, speed);
+    } else {
+      pause();
+    }
+  };
+  tick();
+}
+
+function pause() {
+  playing = false;
+  if (timer) clearTimeout(timer);
+  document.getElementById('btn-play').textContent = '▶ Chạy';
+  document.getElementById('btn-play').className = 'btn btn-sm btn-success';
+}
+
+// ═══════════════════════════════════════════════
+// EVENT LISTENERS
+// ═══════════════════════════════════════════════
+document.getElementById('btn-play').addEventListener('click', play);
+document.getElementById('btn-step').addEventListener('click', () => { pause(); goToStep(step + 1); });
+document.getElementById('btn-step-back').addEventListener('click', () => { pause(); if (step > -1) { eventLogEntries = eventLogEntries.slice(0, Math.max(0, step * 10)); goToStep(step - 1); } });
+document.getElementById('btn-reset').addEventListener('click', reset);
+document.getElementById('speed-select').addEventListener('change', function() { speed = parseInt(this.value); });
+
+document.getElementById('algorithm-select').addEventListener('change', function() {
+  const showQ = this.value === 'rr' || this.value === 'omdrrs';
+  document.getElementById('quantum-field').style.display = showQ ? '' : 'none';
+});
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.code === 'Space') { e.preventDefault(); play(); }
+  if (e.code === 'ArrowRight') { e.preventDefault(); pause(); goToStep(step + 1); }
+  if (e.code === 'ArrowLeft') { e.preventDefault(); pause(); if (step > 0) goToStep(step - 1); }
+  if (e.code === 'KeyR') { e.preventDefault(); reset(); }
+});
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+document.getElementById('quantum-field').style.display =
+  (ALGORITHM === 'rr' || ALGORITHM === 'omdrrs') ? '' : 'none';
+
+initGantt();
+renderDetailTable();
+renderStats(-1);
+
+})();
+</script>
+{% endblock %}

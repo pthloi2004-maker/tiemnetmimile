@@ -1,0 +1,46 @@
+{% extends 'app/base.html' %}
+{% block main_container %}
+<div class="container mt-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold" style="color: #ff007f;">LIÊN HỆ VỚI NHATPHAT</h2>
+        <p class="text-muted">Chúng tôi luôn sẵn sàng lắng nghe và hỗ trợ bạn</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100" style="background: white; border-radius: 15px; overflow: hidden;">
+                <div style="height: 10px; background: #ff007f;"></div> 
+                
+                <div class="p-4 text-center">
+                    <h5 class="fw-bold mb-4" style="color: #ff007f;">Thông tin kết nối</h5>
+                    
+                    <div class="mb-4">
+                        <i class="fas fa-envelope fa-3x mb-2" style="color: #0d6efd;"></i>
+                        <p class="mb-0 fw-bold">Email hỗ trợ:</p>
+                        <p class="lead" style="color: #333;">nhattphat1904@gmail.com</p>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <i class="fas fa-phone-alt fa-3x mb-2" style="color: #28a745;"></i>
+                        <p class="mb-0 fw-bold">Hotline:</p>
+                        <p class="lead" style="color: #333;">0357.436.789</p>
+                    </div>
+
+                    <div class="p-3 bg-light rounded mt-3">
+                        <p class="small mb-0 text-muted italic">
+                            <i>"Sự hài lòng của khách hàng là niềm hạnh phúc của Nhóm 6"</i>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card { transition: transform 0.3s ease; }
+    .card:hover { transform: translateY(-10px); }
+</style>
+{% endblock %}

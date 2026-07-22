@@ -1,0 +1,44 @@
+{% extends 'app/base.html' %}
+{% block main_container %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card shadow-lg border-0" style="width: 100%; max-width: 440px; border-radius: 0.75rem;">
+        <div class="card-body p-5">
+            <h2 class="text-center fw-bold mb-4" style="color: #c5a059;">ĐĂNG KÝ NHÂN VIÊN</h2>
+            
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="registration-form">
+                    {{ form.as_p }}
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-2 mt-3" style="letter-spacing: 1px;">
+                    TẠO TÀI KHOẢN
+                </button>
+            </form>
+            
+            <p class="text-center mt-4 small text-muted">
+                Đã có tài khoản? <a href="{% url 'app:login' %}" class="fw-bold text-decoration-none" style="color: #c5a059;">Đăng nhập ngay</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .registration-form input {
+        display: block;
+        width: 100%;
+        padding: 8px 12px;
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+    .registration-form label {
+        font-weight: bold;
+        font-size: 0.85rem;
+        display: block;
+        margin-bottom: 5px;
+    }
+    .helptext { font-size: 0.75rem; color: #888; display: block; margin-bottom: 10px; }
+</style>
+{% endblock %}

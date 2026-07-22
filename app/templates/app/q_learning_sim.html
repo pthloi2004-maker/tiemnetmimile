@@ -1,0 +1,254 @@
+{% extends 'app/base.html' %}
+
+{% block title %}AQSA - MiMi Lê{% endblock %}
+{% block body_class %}q-learning-page{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="page-hero mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-lg-8">
+                <span class="section-kicker"><i class="fa-solid fa-brain"></i>Machine Learning</span>
+                <h1 class="hero-title mt-2">AQSA - Adaptive Workload Management and Resource Scheduling Algorithm</h1>
+                <p class="hero-subtitle">Thuật toán quản lý khối lượng công việc thích ứng và lập lịch tài nguyên dựa trên Q-learning với Experience Replay và AdamW Optimizer.</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <a href="{% url 'app:scheduling_simulation' %}" class="btn btn-outline-primary btn-sm me-2">Scheduling</a>
+                <a href="{% url 'app:dashboard' %}" class="btn btn-outline-secondary btn-sm">← Dashboard</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Cấu hình huấn luyện</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small">Số Episodes</label>
+                            <input type="number" name="episodes" class="form-control" value="{{ episodes }}" min="10" max="500">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">CPU ban đầu (%)</label>
+                            <input type="number" name="initial_cpu" class="form-control" value="{{ initial_cpu }}" min="0" max="100" step="1">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Memory ban đầu (%)</label>
+                            <input type="number" name="initial_memory" class="form-control" value="{{ initial_memory }}" min="0" max="100" step="1">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Queue ban đầu</label>
+                            <input type="number" name="initial_queue" class="form-control" value="{{ initial_queue }}" min="0" max="20" step="1">
+                        </div>
+                        <div class="col-12 d-grid">
+                            <button type="submit" class="btn btn-primary">Huấn luyện Agent</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Kết quả huấn luyện</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="display-6 fw-bold text-primary">{{ q_table_size }}</div>
+                                <div class="small text-muted">Q-Table Size</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="display-6 fw-bold text-info">{{ final_epsilon|floatformat:4 }}</div>
+                                <div class="small text-muted">Final Epsilon</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="display-6 fw-bold text-warning">{{ episodes }}</div>
+                                <div class="small text-muted">Episodes</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="display-6 fw-bold text-success">AdamW</div>
+                                <div class="small text-muted">Optimizer</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 soft-panel p-3">
+                        <div class="small">
+                            <strong>Trạng thái ban đầu:</strong> CPU: {{ initial_cpu }}%, Memory: {{ initial_memory }}%, Queue: {{ initial_queue }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="section-card">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Biểu đồ Reward qua Episodes</h5>
+                </div>
+                <div class="card-body">
+                    <div id="reward-chart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Log huấn luyện (20 episodes cuối)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Episode</th>
+                                    <th>Reward</th>
+                                    <th>Steps</th>
+                                    <th>Epsilon</th>
+                                    <th>CPU</th>
+                                    <th>Memory</th>
+                                    <th>Queue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in training_log|slice:":-20" %}
+                                <tr>
+                                    <td>{{ log.episode }}</td>
+                                    <td><span class="badge {% if log.reward > -100 %}bg-success{% else %}bg-danger{% endif %}">{{ log.reward|floatformat:1 }}</span></td>
+                                    <td>{{ log.steps }}</td>
+                                    <td>{{ log.epsilon|floatformat:4 }}</td>
+                                    <td>{{ log.final_cpu|floatformat:1 }}%</td>
+                                    <td>{{ log.final_memory|floatformat:1 }}%</td>
+                                    <td>{{ log.final_queue }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="7" class="text-center text-muted">Không có dữ liệu</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="section-card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="mb-0">Giải thích AQSA</h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">
+                        <strong>AQSA</strong> (Adaptive Workload Management and Resource Scheduling Algorithm) là thuật toán Q-learning thích ứng với Experience Replay và AdamW Optimizer.
+                    </p>
+                    <ul class="small mb-0">
+                        <li><strong>State:</strong> CPU utilization, Memory usage, Task queue length (đa chiều)</li>
+                        <li><strong>Action:</strong> Giảm ưu tiên, Giữ nguyên, Tăng ưu tiên, Cấp phát thêm tài nguyên</li>
+                        <li><strong>Reward:</strong> rt = - (CPUt + Memoryt + QueueLengtht) (nghịch đảo chi phí)</li>
+                        <li><strong>Experience Replay:</strong> Lưu trữ và huấn luyện lại từ buffer để tăng tốc độ hội tụ</li>
+                        <li><strong>AdamW:</strong> Optimizer với weight decay để ngăn chặn overfitting</li>
+                        <li><strong>Learning Rate:</strong> alpha = 0.0001 (học mịn)</li>
+                        <li><strong>Epsilon-Greedy:</strong> Khám phá với xác suất epsilon, khai thác với xác suất (1-epsilon)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 text-center py-3">
+            <a href="{% url 'app:scheduling_simulation' %}" class="btn btn-primary me-2">So sánh với Scheduling</a>
+            <a href="{% url 'app:dashboard' %}" class="btn btn-secondary">← Quay lại Dashboard</a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% if episode_rewards %}
+{{ episode_rewards|json_script:"episode-rewards-data" }}
+{% endif %}
+{% if episode_steps %}
+{{ episode_steps|json_script:"episode-steps-data" }}
+{% endif %}
+
+<script>
+let episodeRewards = [];
+let episodeSteps = [];
+
+{% if episode_rewards %}
+try {
+    episodeRewards = JSON.parse(document.getElementById('episode-rewards-data').textContent);
+} catch (e) {
+    console.error('Error parsing episode rewards:', e);
+}
+{% endif %}
+
+{% if episode_steps %}
+try {
+    episodeSteps = JSON.parse(document.getElementById('episode-steps-data').textContent);
+} catch (e) {
+    console.error('Error parsing episode steps:', e);
+}
+{% endif %}
+
+// Reward Chart
+const rewardCtx = document.getElementById('reward-chart').getContext('2d');
+new Chart(rewardCtx, {
+    type: 'line',
+    data: {
+        labels: episodeRewards.map((_, i) => i + 1),
+        datasets: [{
+            label: 'Reward',
+            data: episodeRewards,
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+            tension: 0.1,
+            fill: true,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+            },
+            title: {
+                display: true,
+                text: 'Reward qua các Episodes (AQSA)'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: false,
+                title: {
+                    display: true,
+                    text: 'Reward (rt = - (CPU + Memory + Queue))'
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Episode'
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

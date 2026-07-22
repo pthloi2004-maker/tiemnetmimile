@@ -1,0 +1,196 @@
+{% extends "app/base.html" %}
+{% load static %}
+
+{% block title %}Đăng nhập - MiMi Lê{% endblock %}
+
+{% block body_class %}bg-gradient{% endblock %}
+
+{% block extra_css %}
+<style>
+    body.bg-gradient {
+        background: linear-gradient(135deg, #f0f2f6 0%, #e8e2d4 50%, #f5f0e8 100%) !important;
+        min-height: 100vh;
+    }
+    .login-wrapper {
+        min-height: 85vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .login-card {
+        width: 100%;
+        max-width: 440px;
+        border-radius: 1.5rem;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(31,39,51,0.12);
+        animation: fadeInUp 0.6s ease forwards;
+    }
+    .login-header {
+        background: linear-gradient(135deg, #c5a059 0%, #d4b06a 100%);
+        padding: 2.5rem 2rem;
+        text-align: center;
+        position: relative;
+    }
+    .login-header::after {
+        content: '';
+        position: absolute;
+        bottom: -20px;
+        left: 0;
+        right: 0;
+        height: 40px;
+        background: #fff;
+        border-radius: 50% 50% 0 0;
+    }
+    .login-header .icon {
+        font-size: 3rem;
+        color: #1a1a1a;
+        margin-bottom: 0.5rem;
+    }
+    .login-header h2 {
+        font-weight: 800;
+        color: #1a1a1a;
+        letter-spacing: 2px;
+        font-size: 1.5rem;
+        margin-bottom: 0.25rem;
+    }
+    .login-header p {
+        color: rgba(26,26,26,0.7);
+        font-size: 0.85rem;
+        margin-bottom: 0;
+    }
+    .login-body {
+        padding: 2.5rem 2rem 2rem;
+        background: #fff;
+    }
+    .form-floating {
+        margin-bottom: 1rem;
+    }
+    .form-floating .form-control {
+        border: 2px solid rgba(31,39,51,0.08);
+        border-radius: 0.75rem;
+        padding: 1rem 0.9rem;
+        height: auto;
+        font-size: 0.95rem;
+        background: #f8f9fc;
+        transition: all 0.2s ease;
+    }
+    .form-floating .form-control:focus {
+        border-color: #c5a059;
+        box-shadow: 0 0 0 4px rgba(197,160,89,0.12);
+        background: #fff;
+    }
+    .form-floating label {
+        padding: 0.8rem 0.9rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+    .form-floating .form-control:focus ~ label,
+    .form-floating .form-control:not(:placeholder-shown) ~ label {
+        opacity: 0.8;
+        transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+    }
+    .btn-login {
+        background: linear-gradient(135deg, #c5a059 0%, #d4b06a 100%);
+        border: none;
+        color: #1a1a1a;
+        font-weight: 700;
+        padding: 0.85rem;
+        border-radius: 0.75rem;
+        font-size: 1rem;
+        letter-spacing: 1px;
+        box-shadow: 0 4px 15px rgba(197,160,89,0.3);
+        transition: all 0.25s ease;
+        width: 100%;
+    }
+    .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(197,160,89,0.4);
+        color: #1a1a1a;
+    }
+    .btn-login:active {
+        transform: translateY(0);
+    }
+    .login-footer {
+        text-align: center;
+        padding: 0 2rem 2rem;
+        background: #fff;
+        border-radius: 0 0 1.5rem 1.5rem;
+    }
+    .login-footer a {
+        color: #c5a059;
+        font-weight: 600;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    .login-footer a:hover {
+        color: #a37c2d;
+        text-decoration: underline;
+    }
+    .divider {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 1.5rem 0;
+        color: #adb5bd;
+        font-size: 0.8rem;
+    }
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: rgba(31,39,51,0.08);
+    }
+</style>
+{% endblock %}
+
+{% block main_container %}
+<div class="login-wrapper">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="icon">
+                <i class="fa-solid fa-display"></i>
+            </div>
+            <h2>ĐĂNG NHẬP</h2>
+            <p>Đăng nhập để quản lý quán net MiMi Lê</p>
+        </div>
+
+        <div class="login-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-danger py-2 small border-0 text-center" style="border-radius: 0.5rem; background: #fce4ec; color: #c62828;">
+                        <i class="fa-solid fa-circle-exclamation me-1"></i>{{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="POST" action="">
+                {% csrf_token %}
+                
+                <div class="form-floating">
+                    <input type="text" name="username" class="form-control" id="usernameInput" placeholder="Tên đăng nhập" required>
+                    <label for="usernameInput"><i class="fa-regular fa-user me-2"></i>Tên đăng nhập</label>
+                </div>
+
+                <div class="form-floating">
+                    <input type="password" name="password" class="form-control" id="passwordInput" placeholder="Mật khẩu" required>
+                    <label for="passwordInput"><i class="fa-solid fa-lock me-2"></i>Mật khẩu</label>
+                </div>
+
+                <button type="submit" class="btn-login mt-3">
+                    <i class="fa-solid fa-right-to-bracket me-2"></i>ĐĂNG NHẬP
+                </button>
+            </form>
+
+            <div class="divider">hoặc</div>
+
+            <div class="text-center">
+                <span class="small text-muted">Chưa có tài khoản?</span>
+                <a href="{% url 'app:register' %}" class="small fw-bold">
+                    Đăng ký ngay <i class="fa-solid fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock main_container %}

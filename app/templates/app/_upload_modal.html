@@ -1,0 +1,57 @@
+<!-- Shared upload modal placed at body level to avoid stacking/context issues -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModalLabel" style="color: var(--brand-dark);">Nhập Cấu Hình Từ File JSON</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="sharedUploadForm" action="{% url 'app:import_simulation_data' %}" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="redirect_to" id="sharedRedirectInput" value="">
+                <div class="modal-body text-dark text-start">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Chọn file JSON hợp lệ (.json)</label>
+                        <input type="file" name="file" accept=".json" class="form-control" required>
+                    </div>
+                    <div class="bg-light p-3 rounded">
+                        <strong class="small d-block mb-1 text-muted">Cấu trúc mẫu (.json):</strong>
+                        <pre class="bg-dark text-light p-2 rounded small mb-0" style="max-height: 150px; overflow-y: auto;"><code>{
+  "type": "banker",
+  "banker": {
+    "total": [10, 5, 12],
+    "allocation": [
+      [1, 1, 2],
+      [2, 0, 1],
+      [1, 1, 0]
+    ],
+    "max_need": [
+      [3, 2, 3],
+      [3, 2, 2],
+      [2, 2, 1]
+    ],
+    "names": ["P0 - Khách A", "P1 - Khách B", "P2 - Khách C"]
+  }
+}</code></pre>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-warning btn-sm text-dark">Nhập và Tải Lại</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// When a trigger button with data-bs-target="#uploadModal" is clicked, set the hidden redirect value
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-bs-target="#uploadModal"]');
+    if (btn) {
+        var redirect = btn.getAttribute('data-redirect') || btn.getAttribute('data-redirect-to') || '';
+        var input = document.getElementById('sharedRedirectInput');
+        if (input) input.value = redirect;
+    }
+}, true);
+</script>

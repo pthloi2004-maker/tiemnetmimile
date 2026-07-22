@@ -1,0 +1,115 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Hàng Chờ - MiMi Lê{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2>🟡 Hàng Chờ</h2>
+            <p class="text-muted">Danh sách khách đang chờ và trạng thái phục vụ.</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'app:queue_add' %}" class="btn btn-primary">Thêm vào hàng chờ</a>
+        </div>
+    </div>
+
+    <!-- Thống kê nhanh -->
+    <div class="row g-2 mb-3">
+        <div class="col-md-4">
+            <div class="card border-warning bg-warning bg-opacity-10 text-center py-2">
+                <div class="fw-bold fs-4">{{ queue|length }}</div>
+                <small class="text-muted">Khách đang chờ</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-info bg-info bg-opacity-10 text-center py-2">
+                <div class="fw-bold fs-4">{{ machines_available }}</div>
+                <small class="text-muted">Máy trống</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-success bg-success bg-opacity-10 text-center py-2">
+                <div class="fw-bold fs-4">{{ estimated_wait }} phút</div>
+                <small class="text-muted">Thời gian chờ dự kiến</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-sm mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Tên khách</th>
+                            <th>Điện thoại</th>
+                            <th>Loại máy</th>
+                            <th>Dự kiến</th>
+                            <th>Đến lúc</th>
+                            <th>Chờ khoảng</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in queue %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td><strong>{{ item.customer_name }}</strong></td>
+                            <td>{{ item.phone|default:"—" }}</td>
+                            <td>
+                                {% if item.preferred_type == 'thuong' %}
+                                    <span class="badge bg-secondary">Thường</span>
+                                {% elif item.preferred_type == 'gaming' %}
+                                    <span class="badge bg-info">Gaming</span>
+                                {% elif item.preferred_type == 'vip' %}
+                                    <span class="badge bg-warning text-dark">VIP</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ item.preferred_type }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.planned_minutes }} phút</td>
+                            <td>{{ item.arrived_at|date:"d/m H:i" }}</td>
+                            <td>
+                                {% if item.get_estimated_wait_minutes > 0 %}
+                                    <span class="text-warning">≈ {{ item.get_estimated_wait_minutes }} phút</span>
+                                {% else %}
+                                    <span class="text-success">Sắp tới lượt</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'app:queue_serve' item.id %}" class="btn btn-success" title="Phục vụ ngay - chuyển sang check-in">
+                                        <i class="fa-solid fa-check"></i> Phục vụ
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-3">
+                                <i class="fa-solid fa-check-circle me-1"></i>Không có khách chờ.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hướng dẫn -->
+    <div class="card border-0 shadow-sm mt-3">
+        <div class="card-body">
+            <h6><i class="fa-solid fa-lightbulb me-2 text-warning"></i>Lưu ý</h6>
+            <ul class="small text-muted mb-0">
+                <li>Khi có máy trống, hệ thống sẽ <strong>tự động</strong> ưu tiên khách trong hàng chờ.</li>
+                <li>Nhấn <strong>"Phục vụ"</strong> để chuyển khách vào form nhận phiên (check-in).</li>
+                <li>Thời gian chờ dự kiến được tính dựa trên các phiên đang chạy và số người đứng trước.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

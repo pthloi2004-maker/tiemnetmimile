@@ -1,0 +1,437 @@
+{% extends 'app/base.html' %}
+{% block title %}Báo Cáo Tổng Kết Đồ Án - Mimi Lê{% endblock %}
+{% block body_class %}report-page{% endblock %}
+
+{% block extra_css %}
+<style>
+    .report-page .card {
+        border: 1px solid rgba(22,36,45,0.08);
+        box-shadow: 0 12px 30px rgba(22,36,45,0.07);
+        border-radius: 1.15rem;
+        overflow: hidden;
+        background: rgba(255,255,255,0.94);
+    }
+    .report-page .card-header {
+        background: linear-gradient(180deg, rgba(249,251,252,0.98), rgba(241,246,247,0.96)) !important;
+        color: #1a2a33;
+    }
+    .report-page .card-body {
+        background: rgba(255,255,255,0.94);
+    }
+    .report-page .section-kicker {
+        color: var(--brand-dark);
+    }
+    .report-page .text-muted,
+    .report-page .small.text-muted {
+        color: #6b7d87 !important;
+    }
+    .report-page .badge.bg-success {
+        background: linear-gradient(135deg, #74d8cb, #2f8f9d) !important;
+        color: #083640 !important;
+    }
+    .report-page .badge.bg-primary {
+        background: linear-gradient(135deg, #6aaec1, #4d86c7) !important;
+        color: #fff !important;
+    }
+    .report-page .badge.bg-warning {
+        background: linear-gradient(135deg, #ffd9bf, #ffb88b) !important;
+        color: #5a341f !important;
+    }
+    .report-page .badge.bg-secondary {
+        background: #dbe8ec !important;
+        color: #39515a !important;
+    }
+    .report-page .table thead th {
+        background: linear-gradient(180deg, rgba(249,251,252,0.98), rgba(242,247,248,0.98)) !important;
+        color: #5f6d75;
+        border-bottom: 1px solid rgba(22,36,45,0.08);
+    }
+    .report-page .table tbody tr:hover {
+        background: rgba(47,143,157,0.04);
+    }
+    .report-page .page-hero {
+        background:
+            linear-gradient(135deg, rgba(47,143,157,0.12), rgba(106,174,193,0.08)),
+            rgba(255,255,255,0.9) !important;
+    }
+    .report-page .report-accent {
+        background: linear-gradient(135deg, rgba(47,143,157,0.08), rgba(255,255,255,0.95)) !important;
+        border: 1px solid rgba(47,143,157,0.14) !important;
+    }
+    .report-page .report-warm {
+        background: linear-gradient(135deg, rgba(255,217,191,0.34), rgba(255,255,255,0.95)) !important;
+        border: 1px solid rgba(244,179,138,0.18) !important;
+    }
+    .report-page .report-soft {
+        background: linear-gradient(135deg, rgba(138,108,255,0.08), rgba(255,255,255,0.95)) !important;
+        border: 1px solid rgba(138,108,255,0.14) !important;
+    }
+    .report-page .report-metric {
+        background: rgba(255,255,255,0.95) !important;
+        border: 1px solid rgba(22,36,45,0.08) !important;
+    }
+    .report-page .report-shell {
+        max-width: 1220px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 report-shell os-page">
+    <div class="page-hero mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div class="pe-lg-5">
+                <div class="section-kicker mb-2">Báo cáo học thuật</div>
+                <h2 class="mb-2" style="color: var(--brand-dark);">Báo Cáo Tổng Kết Đồ Án Hệ Điều Hành</h2>
+                <p class="text-muted mb-0">Tài liệu này trình bày cơ sở lý thuyết, thiết kế hệ thống, mức độ đáp ứng yêu cầu và kết quả so sánh các giải thuật mô phỏng.</p>
+            </div>
+            <div class="text-end">
+                <a href="{% url 'app:simulation' %}" class="btn btn-outline-secondary btn-sm">← Quay lại mô phỏng</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100 report-accent">
+                <div class="card-body">
+                    <div class="badge bg-primary mb-3">Insight</div>
+                    <h6 class="mb-2">Không chỉ mô phỏng, mà còn biết ra quyết định</h6>
+                    <p class="small text-muted mb-0">
+                        Thầy không chỉ thấy các thuật toán chạy, mà còn thấy cách hệ thống quyết định:
+                        cái gì nhận ngay, cái gì đưa vào hàng chờ, cái gì phải từ chối tạm thời để tránh nghẽn.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100 report-soft">
+                <div class="card-body">
+                    <div class="badge bg-success mb-3">Practical</div>
+                    <h6 class="mb-2">10 máy, 11 khách: xử lý như hệ thống thật</h6>
+                    <p class="small text-muted mb-0">
+                        Khi số yêu cầu vượt số máy, request thứ 11 không bị "rớt" vô nghĩa mà được đưa vào queue,
+                        sau đó được phục vụ theo thứ tự và trạng thái an toàn của tài nguyên.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100 report-warm">
+                <div class="card-body">
+                    <div class="badge bg-warning text-dark mb-3">Research</div>
+                    <h6 class="mb-2">Có tài liệu và hướng phát triển rõ ràng</h6>
+                    <p class="small text-muted mb-0">
+                        Phần mở rộng bám theo deadlock prevention, Banker, MLFQ, working set và admission control
+                        để chứng minh app có tư duy hệ thống chứ không chỉ làm demo.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Phiên hôm nay</div>
+                    <h3 class="mb-0">{{ total_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Doanh thu hôm nay</div>
+                    <h3 class="mb-0">{{ revenue|floatformat:0 }}₫</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Phiên đang chạy</div>
+                    <h3 class="mb-0">{{ active_sessions|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Khách chờ</div>
+                    <h3 class="mb-0">{{ waiting_queue|length }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">1. Cơ Sở Lý Thuyết</h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">
+                        Đề tài xây dựng một hệ thống mô phỏng các cơ chế cơ bản của Hệ Điều Hành trên nền tảng quản lý quán net.
+                        Trong mô hình này, mỗi phiên chơi được xem như một tiến trình; máy tính, tai nghe, tài khoản game và RAM
+                        được xem là tài nguyên hệ thống; hàng chờ mô tả tình huống cạnh tranh tài nguyên giữa các tiến trình.
+                    </p>
+                    <div class="row g-3">
+                        {% for item in implementation_summary %}
+                        <div class="col-md-6">
+                            <div class="p-3 rounded border h-100 report-accent">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <h6 class="mb-0">{{ item.title }}</h6>
+                                    <span class="badge {% if item.status == 'Đã có' %}bg-success{% else %}bg-primary{% endif %}">{{ item.status }}</span>
+                                </div>
+                                <p class="small mb-0">{{ item.detail }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">2. Mô Tả Thiết Kế Hệ Thống</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="small text-muted ps-3 mb-0">
+                        {% for note in design_notes %}
+                        <li class="mb-2">{{ note }}</li>
+                        {% endfor %}
+                    </ol>
+                    <div class="mt-3 p-3 rounded report-warm">
+                        <strong>Luồng chính:</strong>
+                        <div class="small mt-2">
+                            Quy trình vận hành của hệ thống gồm: Dashboard → Chọn mô phỏng → Nạp dữ liệu thực hoặc nhập tay → Thực thi thuật toán → Hiển thị biểu đồ, bảng số liệu và kết quả so sánh.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">3. Mức Độ Đáp Ứng Yêu Cầu Đề Tài</h5>
+                </div>
+                <div class="card-body table-responsive">
+                    <table class="table table-bordered table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Hạng mục</th>
+                                <th>Trạng thái</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Tiến trình</td>
+                                <td><span class="badge bg-success">Đã đáp ứng</span></td>
+                                <td>Session/Queue được ánh xạ thành process với arrival time và burst time.</td>
+                            </tr>
+                            <tr>
+                                <td>CPU scheduling</td>
+                                <td><span class="badge bg-success">Đã đáp ứng</span></td>
+                                <td>FCFS, SJF, Round Robin có Gantt chart, thống kê, và so sánh.</td>
+                            </tr>
+                            <tr>
+                                <td>Bộ nhớ</td>
+                                <td><span class="badge bg-success">Đã bổ sung</span></td>
+                                <td>FIFO, LRU, OPT đã có mô phỏng page replacement và tỷ lệ hit/fault.</td>
+                            </tr>
+                            <tr>
+                                <td>Đồng bộ hóa</td>
+                                <td><span class="badge bg-success">Đã bổ sung</span></td>
+                                <td>Producer-Consumer với buffer hữu hạn, semaphore và vùng găng.</td>
+                            </tr>
+                            <tr>
+                                <td>Banker / deadlock</td>
+                                <td><span class="badge bg-success">Đã đáp ứng</span></td>
+                                <td>Đã có kiểm tra an toàn cấp phát và tình huống deadlock.</td>
+                            </tr>
+                            <tr>
+                                <td>Báo cáo tổng hợp</td>
+                                <td><span class="badge bg-success">Đã bổ sung</span></td>
+                                <td>Trang này tổng hợp lý thuyết, thiết kế và kết quả so sánh.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">4. So Sánh Giải Thuật CPU</h5>
+                    <span class="badge bg-primary">FCFS / SJF / RR</span>
+                </div>
+                <div class="card-body table-responsive">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Thuật toán</th>
+                                <th>Avg Wait</th>
+                                <th>Avg Response</th>
+                                <th>Avg TAT</th>
+                                <th>CPU Util</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in scheduling_comparison %}
+                            <tr>
+                                <td><strong>{{ row.name }}</strong></td>
+                                <td>{{ row.stats.avg_wait|floatformat:1 }}</td>
+                                <td>{{ row.stats.avg_response|floatformat:1 }}</td>
+                                <td>{{ row.stats.avg_tat|floatformat:1 }}</td>
+                                <td>{{ row.stats.cpu_util|floatformat:1 }}%</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-3">Chưa có dữ liệu để so sánh</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if reference_schedule %}
+                    <div class="mt-3 small text-muted">
+                        Mẫu process hiện tại:
+                        {% for p in reference_schedule %}
+                            <span class="badge bg-light text-dark border me-1">{{ p.pid }} - {{ p.name }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">5. So Sánh Giải Thuật Bộ Nhớ</h5>
+                    <span class="badge bg-primary">FIFO / LRU / OPT</span>
+                </div>
+                <div class="card-body table-responsive">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Thuật toán</th>
+                                <th>Faults</th>
+                                <th>Hit rate</th>
+                                <th>Fault rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in memory_comparison %}
+                            <tr>
+                                <td><strong>{{ row.name }}</strong></td>
+                                <td>{{ row.stats.faults }}</td>
+                                <td>{{ row.stats.hit_rate }}%</td>
+                                <td>{{ row.stats.fault_rate }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="mt-3 small text-muted">
+                        Tốt nhất theo fault: <strong>{{ memory_best_faults }}</strong> |
+                        Tốt nhất theo hit rate: <strong>{{ memory_best_hit }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">6. Kết Quả Vận Hành</h5>
+                </div>
+                <div class="card-body table-responsive">
+                    <table class="table table-striped table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Loại máy</th>
+                                <th>Số phiên</th>
+                                <th>Doanh thu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in by_type %}
+                            <tr>
+                                <td>{{ row.machine__machine_type|default:'Chưa xác định' }}</td>
+                                <td>{{ row.count }}</td>
+                                <td>{{ row.total|floatformat:0 }}₫</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-3">Chưa có dữ liệu</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="mb-2">Kết Luận</h5>
+                    <p class="small text-muted mb-0">
+                        Sau khi hoàn thiện các mô-đun mô phỏng, hệ thống đã đáp ứng đầy đủ các nội dung chính của đề tài,
+                        bao gồm tiến trình, lập lịch CPU, bộ nhớ, đồng bộ hóa, cơ chế Banker và đánh giá hiệu năng.
+                        Báo cáo này có thể sử dụng trực tiếp cho phần nộp cuối kỳ sau khi bổ sung hình ảnh minh họa từ các màn hình mô phỏng.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-1">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">7. Hướng Phát Triển Thực Tế</h5>
+                    <span class="badge bg-primary">Tóm tắt</span>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">
+                        Phần này gom các hướng nghiên cứu nâng cao để thể hiện rằng đề tài không chỉ dừng ở demo,
+                        mà còn có hướng áp dụng vào hệ thống thật.
+                    </p>
+                    <div class="row g-3">
+                        {% for item in research_highlights|slice:":4" %}
+                        <div class="col-md-6">
+                            <div class="p-3 rounded border h-100 report-accent">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <h6 class="mb-0">{{ item.title }}</h6>
+                                    <span class="badge bg-light text-dark border">{{ item.source }}</span>
+                                </div>
+                                <p class="small text-muted mb-0">{{ item.detail }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-3 small text-muted">
+                        Các ý này có thể dùng để trả lời khi thầy hỏi: nếu hệ thống có 10 máy nhưng 11 khách, nếu CPU có job dài
+                        gây starvation, hoặc nếu bộ nhớ bắt đầu thrashing thì em xử lý thế nào.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

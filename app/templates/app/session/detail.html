@@ -1,0 +1,107 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Chi Tiết Phiên - MiMi Lê{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2>🔍 Chi Tiết Phiên</h2>
+            <p class="text-muted">Thông tin chi tiết về phiên và trạng thái hiện tại.</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'app:session_list' %}" class="btn btn-outline-secondary">Quay lại danh sách</a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Khách</dt>
+                <dd class="col-sm-9">{{ session.get_customer_name }}</dd>
+
+                <dt class="col-sm-3">Máy</dt>
+                <dd class="col-sm-9">{{ session.machine.name }}</dd>
+
+                <dt class="col-sm-3">Trạng thái</dt>
+                <dd class="col-sm-9">{{ session.get_status_display }}</dd>
+
+                <dt class="col-sm-3">Bắt đầu</dt>
+                <dd class="col-sm-9">{{ session.start_time|date:"d/m/Y H:i" }}</dd>
+
+                <dt class="col-sm-3">Game</dt>
+                <dd class="col-sm-9">{{ session.game_name|default:'-' }}</dd>
+
+                <dt class="col-sm-3">Dự kiến</dt>
+                <dd class="col-sm-9">{{ session.planned_minutes }} phút</dd>
+
+                <dt class="col-sm-3">Còn lại</dt>
+                <dd class="col-sm-9">{{ session.get_remaining_minutes }} phút</dd>
+
+                <dt class="col-sm-3">Tiền giờ</dt>
+                <dd class="col-sm-9">{{ play_cost|default:0|floatformat:0 }}₫</dd>
+
+                <dt class="col-sm-3">Tiền dịch vụ</dt>
+                <dd class="col-sm-9">{{ service_total|default:0|floatformat:0 }}₫</dd>
+
+                <dt class="col-sm-3">Tổng tiền ước tính</dt>
+                <dd class="col-sm-9"><strong>{{ total_cost|default:0|floatformat:0 }}₫</strong></dd>
+
+                <dt class="col-sm-3">Tai Nghe</dt>
+                <dd class="col-sm-9">{{ session.used_headset|yesno:"Có,Không" }}</dd>
+
+                <dt class="col-sm-3">Tài khoản</dt>
+                <dd class="col-sm-9">{{ session.used_account|yesno:"Có,Không" }}</dd>
+
+                <dt class="col-sm-3">RAM</dt>
+                <dd class="col-sm-9">{{ session.used_ram_gb }} GB</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-bottom d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">🍜 Dịch vụ / Gọi món</h5>
+                        <p class="small text-muted mb-0">Thêm nước, mì, snack... và tự động tính tổng tiền vào phiên.</p>
+                    </div>
+                    {% if session.status == 'dang_chay' %}
+                        <a href="{% url 'app:order_service' session.id %}" class="btn btn-primary btn-sm">Gọi đồ ăn/đồ uống</a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if session_services %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Món</th>
+                                    <th>Số lượng</th>
+                                    <th>Đơn giá</th>
+                                    <th>Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in session_services %}
+                                <tr>
+                                    <td>{{ item.service.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{{ item.price|floatformat:0 }}₫</td>
+                                    <td>{{ item.get_cost|floatformat:0 }}₫</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-secondary mb-0">
+                        Chưa có món ăn, đồ uống hoặc dịch vụ nào được thêm vào phiên.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div></div>
+{% endblock %}

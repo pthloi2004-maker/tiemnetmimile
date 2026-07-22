@@ -1,0 +1,14 @@
+{% extends 'app/base.html' %}
+{% block title %}QR Login{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title">QR Login</h5>
+      <p>Token: <code>{{ token }}</code></p>
+      <p>If this were linked to a phone, the user would be logged in automatically.</p>
+      <a href="{% url 'app:dashboard' %}" class="btn btn-primary">Quay lại</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

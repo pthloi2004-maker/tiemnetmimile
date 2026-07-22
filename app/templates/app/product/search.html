@@ -1,0 +1,54 @@
+{% extends 'app/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block main_container %}
+<div class="container mt-4">
+    <h4 class="mb-4">Kết quả tìm kiếm cho: "<span class="text-danger fw-bold">{{ query }}</span>"</h4>
+    
+    <div class="row">
+        {% for product in products %}
+        <div class="col-md-3 mb-4">
+            <div class="card h-100 shadow-sm border-0 product-card" style="border-radius: 15px; overflow: hidden; transition: 0.3s;">
+                <a href="{% url 'app:product_detail' product.id product.slug %}">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" class="card-img-top p-3" style="height: 200px; object-fit: contain;">
+                    {% else %}
+                        <img src="{% static 'app/images/default.jpg' %}" class="card-img-top p-3" style="height: 200px; object-fit: contain;">
+                    {% endif %}
+                </a>
+                <div class="card-body text-center d-flex flex-column">
+                    <h6 class="fw-bold mb-2" style="height: 2.5rem; overflow: hidden;">{{ product.name }}</h6>
+                    
+                    <p class="text-danger fw-bold fs-5 mb-3">{{ product.price|intcomma }} VNĐ</p>
+                    
+                    <div class="d-grid gap-2 mt-auto">
+                        <a href="{% url 'app:product_detail' product.id product.slug %}" class="btn btn-sm btn-outline-danger" style="border-radius: 50px;">
+                            Xem Chi Tiết
+                        </a>
+                        <a href="{% url 'app:add_to_cart' product.id %}" class="btn btn-sm btn-danger" style="background-color: #ff007f; border: none; border-radius: 50px;">
+                            <i class="fas fa-shopping-cart me-1"></i> Thêm Vào Giỏ
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <div class="alert alert-light shadow-sm py-5" style="border-radius: 15px;">
+                <i class="fas fa-search-minus fa-3x mb-3 text-muted"></i>
+                <p class="text-muted">Rất tiếc, chúng tôi không tìm thấy sản phẩm nào khớp với từ khóa của bạn.</p>
+                <a href="{% url 'app:product_list' %}" class="btn btn-outline-dark btn-sm mt-2">Xem tất cả sản phẩm</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .product-card:hover { 
+        transform: translateY(-8px); 
+        box-shadow: 0 10px 20px rgba(255, 0, 127, 0.1) !important; 
+    }
+</style>
+{% endblock %}

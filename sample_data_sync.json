@@ -1,0 +1,22 @@
+{
+    "type": "synchronization",
+    "synchronization": {
+        "sequence": [
+            "P",
+            "P",
+            "C",
+            "P",
+            "C",
+            "P",
+            "P",
+            "C",
+            "C",
+            "P",
+            "C",
+            "C"
+        ],
+        "buffer_size": 3,
+        "producer_count": 3,
+        "consumer_count": 2
+    }
+}

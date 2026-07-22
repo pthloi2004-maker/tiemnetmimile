@@ -1,0 +1,374 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}So sánh lập lịch CPU | MiMi Lê{% endblock %}
+{% block body_class %}scheduling-page{% endblock %}
+
+{% block extra_css %}
+<style>
+    .compare-lane {
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        padding: .85rem 1rem;
+        margin-bottom: 1rem;
+        background: #fff;
+        border-left: 4px solid var(--lane-color, var(--page-accent));
+    }
+    .compare-lane.active { box-shadow: 0 8px 24px rgba(24, 88, 212, 0.12); }
+    .lane-track {
+        position: relative;
+        height: 42px;
+        margin-top: .5rem;
+        border-radius: .75rem;
+        background: rgba(244, 250, 252, 0.9);
+        overflow: hidden;
+    }
+    .lane-seg {
+        position: absolute;
+        top: 6px;
+        height: 30px;
+        border-radius: .5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .7rem;
+        font-weight: 800;
+        color: #fff;
+        transition: width .35s ease, left .35s ease, opacity .25s;
+        opacity: 0.35;
+    }
+    .lane-seg.visible { opacity: 1; }
+    .lane-seg.current { box-shadow: 0 0 0 2px rgba(24, 88, 212, 0.35); z-index: 2; }
+    .race-timer {
+        font-size: 1.75rem;
+        font-weight: 900;
+        color: var(--brand-dark);
+        font-variant-numeric: tabular-nums;
+    }
+    .metric-pill {
+        display: inline-flex;
+        padding: .25rem .55rem;
+        border-radius: 999px;
+        font-size: .72rem;
+        font-weight: 700;
+        background: rgba(24, 88, 212, 0.08);
+        color: var(--page-accent);
+    }
+    .chart-panel { min-height: 300px; background: #fff; border-radius: 1rem; padding: .75rem; border: 1px solid var(--border); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 os-page">
+    <div class="page-hero scheduling-accent p-4 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <div class="section-kicker mb-2">So sánh đa thuật toán</div>
+                <h2 class="mb-2" style="color: var(--brand-dark);">Arena lập lịch CPU</h2>
+                <p class="text-muted mb-0">
+                    Chạy đồng thời <strong>FCFS</strong>, <strong>SJF</strong>, <strong>Round Robin</strong>,
+                    <strong>OMDRRS</strong> và <strong>Q-Learning</strong> (theo tài liệu <em>Q learning.pdf</em>) trên cùng bộ tiến trình.
+                    Animation cho thấy từng thuật toán cấp CPU thế nào và thời gian xử lý (ms).
+                </p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'app:scheduling_simulation' %}" class="btn btn-outline-primary btn-sm">FCFS / SJF / RR</a>
+                <a href="{% url 'app:omdrrs_simulation' %}" class="btn btn-outline-primary btn-sm">OMDRRS</a>
+                <a href="{% url 'app:simulation' %}" class="btn btn-outline-secondary btn-sm">Trung tâm mô phỏng</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <input type="hidden" name="run" value="1">
+                <div class="col-md-2">
+                    <label class="form-label small">Quantum RR</label>
+                    <input type="number" name="quantum" class="form-control" min="1" value="{{ quantum }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Q-Learning episodes</label>
+                    <input type="number" name="q_episodes" class="form-control" min="20" max="300" value="{{ q_episodes }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Nguồn</label>
+                    <select name="data_mode" class="form-select">
+                        <option value="live" {% if data_mode == 'live' %}selected{% endif %}>Dữ liệu thật</option>
+                        <option value="demo" {% if data_mode == 'demo' %}selected{% endif %}>Bo de mau</option>
+                        <option value="manual" {% if data_mode == 'manual' %}selected{% endif %}>Nhập tay</option>
+                        <option value="random" {% if data_mode == 'random' %}selected{% endif %}>Ngẫu nhiên</option>
+                        <option value="file" {% if data_mode == 'file' %}selected{% endif %}>Nhập từ file JSON</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Seed</label>
+                    <input type="text" name="seed" class="form-control" value="{{ seed }}">
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">Chạy so sánh tất cả</button>
+                    <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#uploadModal" title="Nhập từ file JSON">📤</button>
+                </div>
+                <div class="col-12 small text-muted">
+                    Nguồn: <strong>{{ source_label }}</strong> — {{ source_description }}
+                    ({{ processes|length }} tiến trình)
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if run_compare and comparison_results %}
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100 text-center p-4">
+                <div class="small text-muted text-uppercase mb-1">Thời gian mô phỏng (đồng hồ CPU)</div>
+                <div class="race-timer" id="sim-clock">0</div>
+                <div class="text-muted small">đơn vị thời gian (phút mô phỏng)</div>
+                <div class="mt-3 small text-muted">Thời gian animation thực tế: <strong id="wall-elapsed">0 ms</strong></div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom d-flex flex-wrap gap-2 align-items-center">
+                    <h5 class="mb-0">Điều khiển animation</h5>
+                    <button type="button" class="btn btn-sm btn-primary" id="play-all-btn">Play tất cả</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="step-all-btn">Step</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="pause-btn">Pause</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="reset-btn">Reset</button>
+                    <label class="ms-auto small mb-0">Tốc độ <input type="range" id="speed-range" min="80" max="900" value="320"></label>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-0" id="global-status">Sẵn sàng — nhấn Play để xem 4 thuật toán chạy song song.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0">Bảng chỉ số &amp; thời gian tính toán</h5>
+            {% if best_wait_key %}<span class="badge bg-success ms-2">WT thấp nhất: {{ best_wait_key|upper }}</span>{% endif %}
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Thuật toán</th>
+                        <th>Tính toán (ms)</th>
+                        <th>Makespan</th>
+                        <th>Avg Wait</th>
+                        <th>Avg TAT</th>
+                        <th>Response</th>
+                        <th>Context SW</th>
+                        <th>CPU %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in comparison_results %}
+                    <tr {% if row.key == best_wait_key %}class="table-success"{% endif %}>
+                        <td><strong>{{ row.name }}</strong>
+                            {% if row.key == 'qlearning' %}
+                            <div class="small text-muted">Train {{ row.train_ms }}ms + Schedule {{ row.schedule_ms }}ms · Q-table {{ row.q_table_size }}</div>
+                            {% endif %}
+                        </td>
+                        <td>{{ row.compute_ms }}</td>
+                        <td>{{ row.stats.makespan }}</td>
+                        <td>{{ row.stats.avg_wait }}</td>
+                        <td>{{ row.stats.avg_tat }}</td>
+                        <td>{{ row.stats.avg_response }}</td>
+                        <td>{{ row.stats.context_switches }}</td>
+                        <td>{{ row.stats.cpu_util }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="chart-panel mb-4">
+        <canvas id="metrics-chart" height="100"></canvas>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0">Animation song song — Gantt từng thuật toán</h5>
+        </div>
+        <div class="card-body" id="lanes-container"></div>
+    </div>
+
+    <script id="comparison-data" type="application/json">{{ comparison_json|safe }}</script>
+    <script id="processes-data" type="application/json">{{ processes_json|safe }}</script>
+    {% else %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center text-muted py-5">
+            <p class="mb-2">Nhấn <strong>Chạy so sánh tất cả</strong> để huấn luyện Q-Learning và chạy 4 thuật toán trên cùng dữ liệu.</p>
+            <p class="small mb-0">Các trang FCFS/SJF/RR và OMDRRS vẫn giữ nguyên — đây là màn hình tổng hợp.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if run_compare and comparison_results %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(() => {
+    const results = JSON.parse(document.getElementById('comparison-data').textContent || '[]');
+    const lanesContainer = document.getElementById('lanes-container');
+    const simClock = document.getElementById('sim-clock');
+    const wallElapsed = document.getElementById('wall-elapsed');
+    const globalStatus = document.getElementById('global-status');
+    const playBtn = document.getElementById('play-all-btn');
+    const stepBtn = document.getElementById('step-all-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const speedRange = document.getElementById('speed-range');
+
+    const laneColors = {
+        fcfs: '#4f86f7',
+        sjf: '#2f8f9d',
+        rr: '#f4b38a',
+        omdrrs: '#1858d4',
+        qlearning: '#8a6cff',
+    };
+
+    const maxEnd = Math.max(...results.flatMap((r) => r.timeline.map((t) => t.end)), 1);
+    const maxSteps = Math.max(...results.map((r) => r.events.length), 1);
+    let stepIndex = -1;
+    let timer = null;
+    let wallStart = null;
+    let speed = Number(speedRange.value);
+
+    const laneState = results.map((row) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'compare-lane';
+        wrap.style.setProperty('--lane-color', laneColors[row.key] || '#1858d4');
+        wrap.innerHTML = `
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <strong>${row.name}</strong>
+                    <span class="metric-pill ms-2">${row.compute_ms} ms tính toán</span>
+                </div>
+                <div class="small text-muted" data-lane-status>Bước 0 / ${row.events.length}</div>
+            </div>
+            <div class="lane-track" data-lane-track></div>
+            <div class="small text-muted mt-1" data-lane-msg>Chưa chạy</div>
+        `;
+        lanesContainer.appendChild(wrap);
+        const track = wrap.querySelector('[data-lane-track]');
+        const segments = row.timeline.map((seg) => {
+            const el = document.createElement('div');
+            el.className = 'lane-seg';
+            el.style.background = `linear-gradient(135deg, ${laneColors[row.key]}, #a7d7df)`;
+            el.style.left = `${(seg.start / maxEnd) * 100}%`;
+            el.style.width = `${Math.max(1, ((seg.end - seg.start) / maxEnd) * 100)}%`;
+            el.textContent = `P${seg.pid}`;
+            el.title = `${seg.name}: ${seg.start}→${seg.end}`;
+            track.appendChild(el);
+            return el;
+        });
+        return { row, wrap, track, segments, statusEl: wrap.querySelector('[data-lane-status]'), msgEl: wrap.querySelector('[data-lane-msg]') };
+    });
+
+    function updateWall() {
+        if (wallStart) wallElapsed.textContent = `${Math.round(performance.now() - wallStart)} ms`;
+    }
+
+    function renderStep(idx) {
+        stepIndex = idx;
+        const clock = idx < 0 ? 0 : Math.max(
+            0,
+            ...results.map((r) => (r.events[idx] ? r.events[idx].end : 0)),
+        );
+        simClock.textContent = String(clock);
+
+        laneState.forEach((lane, li) => {
+            const events = lane.row.events;
+            lane.segments.forEach((seg, si) => {
+                seg.classList.toggle('visible', si <= idx);
+                seg.classList.toggle('current', si === idx);
+            });
+            lane.wrap.classList.toggle('active', idx >= 0 && idx < events.length);
+            if (idx < 0) {
+                lane.statusEl.textContent = `Bước 0 / ${events.length}`;
+                lane.msgEl.textContent = 'Chưa chạy';
+            } else if (idx >= events.length) {
+                lane.statusEl.textContent = `Hoàn thành (${events.length} bước)`;
+                lane.msgEl.textContent = `Makespan ${lane.row.stats.makespan} · WT ${lane.row.stats.avg_wait}`;
+            } else {
+                const ev = events[idx];
+                lane.statusEl.textContent = `Bước ${idx + 1} / ${events.length}`;
+                lane.msgEl.textContent = ev.message || `${ev.name} ${ev.start}→${ev.end}`;
+            }
+        });
+
+        const done = idx >= maxSteps - 1;
+        globalStatus.textContent = done
+            ? 'Hoàn thành tất cả thuật toán. Xem bảng chỉ số để so sánh thời gian tính toán (ms) và makespan.'
+            : `Đang mô phỏng bước ${idx + 1} — đồng hồ CPU: ${clock}`;
+        updateWall();
+        return done;
+    }
+
+    function stopTimer() {
+        if (timer) clearInterval(timer);
+        timer = null;
+    }
+
+    function playAll() {
+        stopTimer();
+        if (stepIndex >= maxSteps - 1) stepIndex = -1;
+        wallStart = performance.now();
+        timer = setInterval(() => {
+            if (stepIndex >= maxSteps - 1) {
+                stopTimer();
+                renderStep(stepIndex);
+                return;
+            }
+            renderStep(stepIndex + 1);
+        }, speed);
+    }
+
+    playBtn.addEventListener('click', playAll);
+    stepBtn.addEventListener('click', () => {
+        stopTimer();
+        if (stepIndex >= maxSteps - 1) return;
+        if (stepIndex < 0) wallStart = performance.now();
+        renderStep(stepIndex + 1);
+    });
+    pauseBtn.addEventListener('click', stopTimer);
+    resetBtn.addEventListener('click', () => {
+        stopTimer();
+        wallStart = null;
+        wallElapsed.textContent = '0 ms';
+        renderStep(-1);
+    });
+    speedRange.addEventListener('input', () => { speed = Number(speedRange.value); });
+
+    if (typeof Chart !== 'undefined') {
+        const labels = results.map((r) => r.name);
+        new Chart(document.getElementById('metrics-chart'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    { label: 'Avg Waiting', data: results.map((r) => r.stats.avg_wait), backgroundColor: 'rgba(24,88,212,0.75)' },
+                    { label: 'Makespan', data: results.map((r) => r.stats.makespan), backgroundColor: 'rgba(47,143,157,0.65)' },
+                    { label: 'Compute (ms)', data: results.map((r) => r.compute_ms), backgroundColor: 'rgba(138,108,255,0.65)' },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true } },
+            },
+        });
+    }
+
+    renderStep(-1);
+})();
+</script>
+{% endif %}
+
+{% endblock %}

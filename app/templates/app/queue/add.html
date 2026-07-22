@@ -1,0 +1,32 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Thêm Hàng Chờ - MiMi Lê{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">➕ Thêm Khách Vào Hàng Chờ</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fa-solid fa-clock me-2"></i>
+                        <strong>Đặt lịch trước!</strong> Khi có máy trống, hệ thống sẽ <strong>tự động</strong> phục vụ khách này mà không cần thao tác thêm.
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fa-solid fa-clock me-1"></i>Thêm vào hàng chờ
+                        </button>
+                        <a href="{% url 'app:queue' %}" class="btn btn-outline-secondary ms-2">Quay lại</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

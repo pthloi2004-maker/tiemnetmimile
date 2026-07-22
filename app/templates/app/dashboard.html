@@ -1,0 +1,610 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - MiMi Lê{% endblock %}
+{% block body_class %}dashboard-page{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Banner */
+.hero-carousel {
+    border-radius: 1rem;
+    overflow: hidden;
+    position: relative;
+    box-shadow: var(--shadow-md);
+}
+.hero-slide {
+    position: relative;
+    min-height: 380px;
+}
+.hero-slide img {
+    width: 100%;
+    height: 380px;
+    object-fit: cover;
+    display: block;
+}
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(6,8,28,0.85) 0%, rgba(6,8,28,0.55) 44%, rgba(6,8,28,0.15) 100%),
+        linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.45) 100%);
+    display: flex;
+    align-items: flex-end;
+    padding: 2rem 1.5rem;
+}
+.hero-content {
+    max-width: 58%;
+    color: #fff;
+}
+.hero-content .eyebrow {
+    display: inline-block;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(197,160,89,0.2);
+    border: 1px solid rgba(255,255,255,0.15);
+    margin-bottom: 0.85rem;
+}
+.hero-content h3 {
+    font-size: clamp(2rem, 3vw, 3.25rem);
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+    text-transform: uppercase;
+    margin: 0 0 0.7rem;
+}
+.hero-content p {
+    max-width: 32rem;
+    font-size: 1rem;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 0;
+}
+.hero-carousel .carousel-indicators {
+    margin-bottom: 1rem;
+}
+.hero-carousel .carousel-indicators [data-bs-target] {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    border: 0;
+    background-color: rgba(255,255,255,0.55);
+}
+.hero-carousel .carousel-indicators .active {
+    background-color: #fff;
+}
+.hero-carousel .carousel-control-prev,
+.hero-carousel .carousel-control-next {
+    width: 8%;
+}
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.88rem;
+}
+
+/* Dashboard Shell */
+.dashboard-shell { background: transparent; }
+
+/* Page Header */
+.page-header {
+    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+    gap: 1rem; margin-bottom: 2rem;
+}
+.page-header h1 {
+    font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em;
+    margin: 0; color: var(--text);
+}
+.page-header .subtitle { color: var(--text-light); margin-top: 0.2rem; font-size: 0.92rem; }
+.top-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.top-actions .btn { border-radius: 0.6rem; padding: 0.6rem 1.2rem; font-weight: 600; font-size: 0.88rem; }
+
+/* Stat Cards */
+.stat-card {
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+    padding-left: 1.2rem;
+}
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 32px rgba(22,28,36,0.08);
+}
+.stat-card .stat-icon {
+    width: 46px; height: 46px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.18rem; margin-bottom: 0.95rem;
+}
+.stat-card .stat-label {
+    color: var(--text-light);
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.05em;
+    text-transform: none;
+}
+.stat-card .stat-value { font-size: 1.95rem; font-weight: 800; color: var(--brand-dark); margin-top: 0.2rem; line-height: 1.1; }
+.stat-card .stat-note { color: var(--text-light); font-size: 0.82rem; margin-top: 0.45rem; }
+
+/* Machine Grid */
+.machine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+.machine-tile {
+    background: var(--surface); border-radius: var(--radius-lg);
+    overflow: hidden; box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+.machine-tile:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.machine-tile .machine-img {
+    width: 100%; height: 140px; object-fit: cover;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; color: #adb5bd;
+}
+.machine-tile .machine-body { padding: 1rem 1.2rem 1.2rem; }
+.machine-tile .machine-name { font-weight: 700; font-size: 1rem; margin-bottom: 0.2rem; }
+.machine-tile .machine-type { font-size: 0.78rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.7rem; }
+.machine-tile .machine-specs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.7rem; }
+.machine-tile .machine-specs .spec-tag {
+    padding: 0.3rem 0.6rem; border-radius: 6px;
+    background: var(--surface-2); font-size: 0.75rem; color: var(--text-light);
+}
+/* Resource Panel */
+.resource-panel .resource-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.6rem 0;
+}
+.resource-panel .resource-item .label { color: var(--text-light); font-size: 0.85rem; }
+.resource-panel .resource-item .value { font-weight: 700; font-size: 1rem; }
+.resource-bar {
+    height: 8px; border-radius: 50px;
+    background: rgba(31,39,51,0.06); overflow: hidden; margin-bottom: 0.5rem;
+}
+.resource-bar .fill { height: 100%; border-radius: 50px; transition: width 0.5s ease; }
+
+/* Session Cards */
+.session-list { display: flex; flex-direction: column; gap: 0.7rem; }
+.session-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.9rem 1.1rem;
+    background: var(--surface-2); border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+}
+.session-item:hover { background: rgba(197,160,89,0.06); }
+.session-item .session-info .name { font-weight: 600; font-size: 0.92rem; }
+.session-item .session-info .meta { font-size: 0.8rem; color: var(--text-light); margin-top: 0.15rem; }
+.session-status {
+    padding: 0.3rem 0.7rem; border-radius: 50px;
+    font-size: 0.75rem; font-weight: 600;
+}
+.session-status.active { background: rgba(214,51,132,0.1); color: #d63384; }
+.session-status.hoan_thanh { background: rgba(37,142,255,0.1); color: #1565c0; }
+.session-status.tam_dung { background: rgba(255,193,7,0.15); color: #a17400; }
+
+/* Chart Bars */
+.chart-bars { display: flex; flex-direction: column; gap: 0.8rem; }
+.chart-bar-item { }
+.chart-bar-item .bar-label { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.3rem; }
+.chart-bar-item .bar-label span:first-child { color: var(--text-light); }
+.chart-bar-item .bar-label strong { color: var(--text); }
+.chart-bar-track {
+    height: 10px; border-radius: 50px;
+    background: rgba(31,39,51,0.06); overflow: hidden;
+}
+.chart-bar-track .bar-fill { height: 100%; border-radius: 50px; }
+
+/* Quick Report */
+.quick-stat {
+    padding: 1.15rem;
+}
+.quick-stat .qs-label { font-size: 0.78rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+.quick-stat .qs-value { font-size: 1.55rem; font-weight: 800; margin-top: 0.3rem; color: var(--brand-dark); }
+
+/* Empty State */
+.empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-light); }
+.empty-state i { font-size: 2.5rem; margin-bottom: 0.8rem; opacity: 0.4; }
+
+@media (max-width: 1199px) { .machine-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 767px) {
+    .machine-grid { grid-template-columns: 1fr; }
+    .page-header { flex-direction: column; align-items: stretch; }
+    .top-actions { width: 100%; }
+    .top-actions .btn { flex: 1; text-align: center; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="heroCarousel" class="carousel slide carousel-fade hero-carousel section-card mb-4" data-bs-ride="carousel" data-bs-interval="3000" data-bs-pause="false">
+    <div class="carousel-indicators">
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Banner 1"></button>
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1" aria-label="Banner 2"></button>
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2" aria-label="Banner 3"></button>
+    </div>
+    <div class="carousel-inner">
+        <div class="carousel-item active hero-slide">
+            <img src="{% static 'app/images/banner/a1.jpg' %}" alt="Banner 1">
+            <div class="hero-overlay">
+                <div class="hero-content">
+                    <div class="eyebrow">Mimi Lê Cyber Gaming Lounge</div>
+                    <h3>Quán net mạnh, chơi mượt, dịch vụ chất</h3>
+                    <p>Không gian gaming hiện đại, máy cấu hình cao, và hệ thống quản lý thông minh cho cả vận hành lẫn mô phỏng giải thuật.</p>
+                    <div class="hero-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> Banner 1 tự động chuyển sau 3 giây</div>
+                </div>
+            </div>
+        </div>
+        <div class="carousel-item hero-slide">
+            <img src="{% static 'app/images/banner/a3.jpg' %}" alt="Banner 2">
+            <div class="hero-overlay">
+                <div class="hero-content">
+                    <div class="eyebrow">Mimi Lê Gaming Zone</div>
+                    <h3>Cày rank, giải trí, trải nghiệm hoàn hảo</h3>
+                    <p>Phù hợp để demo hệ thống quán net, đặt phòng máy, và liên hệ trực tiếp với các thuật toán bạn đang học trong môn Hệ Điều Hành.</p>
+                    <div class="hero-badge"><i class="fa-solid fa-rotate"></i> Banner 2 chuyển luân phiên</div>
+                </div>
+            </div>
+        </div>
+        <div class="carousel-item hero-slide">
+            <img src="{% static 'app/images/banner/a4.jpg' %}" alt="Banner 3">
+            <div class="hero-overlay">
+                <div class="hero-content">
+                    <div class="eyebrow">Mimi Lê</div>
+                    <h3>Trải nghiệm mượt, không gian hiện đại</h3>
+                    <p>Banner luân phiên giúp trang sinh động hơn và làm nổi bật hình ảnh quán net trong bài làm.</p>
+                    <div class="hero-badge"><i class="fa-solid fa-shuffle"></i> Banner 3 tự động luân chuyển</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+    </button>
+</div>
+<div class="dashboard-shell">
+    <div class="page-hero mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-lg-8">
+                <span class="section-kicker"><i class="fa-solid fa-gauge-high"></i>Dashboard</span>
+                <h1 class="hero-title mt-2">Tổng quan vận hành phòng máy theo thời gian thực</h1>
+                <p class="hero-subtitle">Theo dõi trạng thái máy, phiên hoạt động, hàng chờ và doanh thu hôm nay trong một bố cục gọn, rõ và dễ tập trung.</p>
+            </div>
+            <div class="col-lg-4">
+                <div class="top-actions justify-content-lg-end">
+                    <a href="{% url 'app:checkin' %}" class="btn btn-primary">
+                        <i class="fa-solid fa-plus me-1"></i>Nhận khách mới
+                    </a>
+                    <a href="{% url 'app:queue_add' %}" class="btn btn-warning">
+                        <i class="fa-solid fa-clock me-1"></i>Thêm hàng chờ
+                    </a>
+                    <a href="{% url 'app:machine_list' %}" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-display me-1"></i>Quản lý máy
+                    </a>
+                    <a href="{% url 'app:report' %}" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-chart-simple me-1"></i>Báo cáo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="metric-card stat-card stat-1">
+                <div class="stat-icon"><i class="fa-solid fa-display"></i></div>
+                <div class="stat-label">Máy sẵn sàng</div>
+                <div class="stat-value">{{ machines_avail }} <small style="font-size:0.85rem;font-weight:600;color:var(--muted);">/ {{ total_machines }}</small></div>
+                <div class="stat-note">Số máy khả dụng trong phòng</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="metric-card stat-card stat-2">
+                <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+                <div class="stat-label">Phiên hiện tại</div>
+                <div class="stat-value">{{ active_sessions }}</div>
+                <div class="stat-note">Số phiên đang chạy</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="metric-card stat-card stat-3">
+                <div class="stat-icon"><i class="fa-solid fa-coins"></i></div>
+                <div class="stat-label">Doanh thu hôm nay</div>
+                <div class="stat-value">{{ revenue_today|floatformat:0 }}<small style="font-size:0.85rem;font-weight:600;color:var(--muted);">₫</small></div>
+                <div class="stat-note">Tổng thu nhập dự kiến</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="metric-card stat-card stat-4">
+                <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+                <div class="stat-label">Khách đang chờ</div>
+                <div class="stat-value">{{ queue_count }}</div>
+                <div class="stat-note">Số khách trong hàng chờ</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="row g-4 mb-4">
+        <!-- Machine Grid -->
+        <div class="col-12 col-xl-8">
+            <div class="section-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="mb-1"><i class="fa-solid fa-layer-group me-2 text-brand"></i>Sơ đồ phòng máy</h5>
+                        <p class="text-muted mb-0 small">Trạng thái máy và hình ảnh trực quan theo từng vị trí.</p>
+                    </div>
+                    <span class="badge bg-brand">Live</span>
+                </div>
+                <div id="machine-grid" class="machine-grid"></div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-12 col-xl-4">
+            <!-- Resource Panel -->
+            <div class="section-card p-4 mb-4">
+                <h5 class="mb-3"><i class="fa-solid fa-chart-pie me-2 text-brand"></i>Tài nguyên hệ thống</h5>
+                <div class="resource-panel">
+                    <div class="resource-item">
+                        <span class="label"><i class="fa-solid fa-circle text-success me-1" style="font-size:0.5rem;"></i>Máy online</span>
+                        <span class="value">{{ machines_avail }}</span>
+                    </div>
+                    <div class="resource-bar"><div class="fill" style="width:{% widthratio machines_avail total_machines 100 %}%;background:linear-gradient(90deg,#4ea1ff,#2979ff);"></div></div>
+                    
+                    <div class="resource-item">
+                        <span class="label"><i class="fa-solid fa-circle text-danger me-1" style="font-size:0.5rem;"></i>Máy đang dùng</span>
+                        <span class="value">{{ machines_in_use }}</span>
+                    </div>
+                    <div class="resource-bar"><div class="fill" style="width:{% widthratio machines_in_use total_machines 100 %}%;background:linear-gradient(90deg,#ff7dc7,#e040a0);"></div></div>
+                    
+                    <div class="resource-item">
+                        <span class="label"><i class="fa-solid fa-circle text-warning me-1" style="font-size:0.5rem;"></i>Máy lỗi</span>
+                        <span class="value">{{ machines_error }}</span>
+                    </div>
+                    <div class="resource-bar"><div class="fill" style="width:{% widthratio machines_error total_machines 100 %}%;background:linear-gradient(90deg,#ffc56a,#ffa726);"></div></div>
+                    
+                    <div class="resource-item">
+                        <span class="label"><i class="fa-solid fa-circle text-secondary me-1" style="font-size:0.5rem;"></i>Máy khóa</span>
+                        <span class="value">{{ machines_locked }}</span>
+                    </div>
+                    <div class="resource-bar"><div class="fill" style="width:{% widthratio machines_locked total_machines 100 %}%;background:linear-gradient(90deg,#b388ff,#7c4dff);"></div></div>
+                </div>
+            </div>
+
+            <!-- Chart Bars -->
+            <div class="section-card p-4">
+                <h5 class="mb-3"><i class="fa-solid fa-chart-column me-2 text-brand"></i>Biểu đồ máy</h5>
+                <div class="chart-bars">
+                    <div class="chart-bar-item">
+                        <div class="bar-label"><span>Online</span><strong>{{ machines_avail }}</strong></div>
+                        <div class="chart-bar-track"><div class="bar-fill" style="width:{% widthratio machines_avail total_machines 100 %}%;background:#4ea1ff;"></div></div>
+                    </div>
+                    <div class="chart-bar-item">
+                        <div class="bar-label"><span>Đang dùng</span><strong>{{ machines_in_use }}</strong></div>
+                        <div class="chart-bar-track"><div class="bar-fill" style="width:{% widthratio machines_in_use total_machines 100 %}%;background:#ff7dc7;"></div></div>
+                    </div>
+                    <div class="chart-bar-item">
+                        <div class="bar-label"><span>Lỗi</span><strong>{{ machines_error }}</strong></div>
+                        <div class="chart-bar-track"><div class="bar-fill" style="width:{% widthratio machines_error total_machines 100 %}%;background:#ffc56a;"></div></div>
+                    </div>
+                    <div class="chart-bar-item">
+                        <div class="bar-label"><span>Khóa</span><strong>{{ machines_locked }}</strong></div>
+                        <div class="chart-bar-track"><div class="bar-fill" style="width:{% widthratio machines_locked total_machines 100 %}%;background:#b388ff;"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Queue Section -->
+    {% if waiting_queue %}
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="section-card p-4 border-warning">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="mb-1"><i class="fa-solid fa-clock me-2 text-warning"></i>Hàng chờ <span class="badge bg-warning text-dark ms-2">{{ queue_count }} khách</span></h5>
+                        <p class="text-muted mb-0 small">Khách đang chờ máy trống. Hệ thống sẽ tự động phục vụ khi có máy.</p>
+                    </div>
+                    <a href="{% url 'app:queue' %}" class="btn btn-sm btn-outline-warning">Xem tất cả <i class="fa-solid fa-arrow-right ms-1"></i></a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless mb-0">
+                        <thead class="text-muted small">
+                            <tr>
+                                <th>#</th>
+                                <th>Tên khách</th>
+                                <th>Loại máy</th>
+                                <th>Dự kiến</th>
+                                <th>Chờ</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in waiting_queue|slice:":5" %}
+                            <tr>
+                                <td class="fw-bold">{{ forloop.counter }}</td>
+                                <td>{{ item.customer_name }}</td>
+                                <td>
+                                    {% if item.preferred_type == 'thuong' %}
+                                        <span class="badge bg-secondary">Thường</span>
+                                    {% elif item.preferred_type == 'gaming' %}
+                                        <span class="badge bg-info">Gaming</span>
+                                    {% elif item.preferred_type == 'vip' %}
+                                        <span class="badge bg-warning text-dark">VIP</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ item.preferred_type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.planned_minutes }} phút</td>
+                                <td>
+                                    {% if item.get_estimated_wait_minutes > 0 %}
+                                        <span class="text-warning">≈ {{ item.get_estimated_wait_minutes }} phút</span>
+                                    {% else %}
+                                        <span class="text-success">Sắp tới lượt</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'app:queue_serve' item.id %}" class="btn btn-sm btn-outline-success">
+                                        <i class="fa-solid fa-check"></i> Phục vụ
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if waiting_queue.count > 5 %}
+                    <div class="text-center mt-2">
+                        <a href="{% url 'app:queue' %}" class="btn btn-sm btn-link">+ {{ waiting_queue.count|add:"-5" }} khách nữa...</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Bottom Row -->
+    <div class="row g-4">
+        <!-- Sessions -->
+        <div class="col-lg-7">
+            <div class="section-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="mb-1"><i class="fa-solid fa-list me-2 text-brand"></i>Phiên mới nhất hôm nay</h5>
+                        <p class="text-muted mb-0 small">Danh sách phiên được tạo gần đây.</p>
+                    </div>
+                    <a href="{% url 'app:session_list' %}" class="btn btn-sm btn-outline-secondary">Xem tất cả <i class="fa-solid fa-arrow-right ms-1"></i></a>
+                </div>
+                {% if today_sessions %}
+                    <div class="session-list">
+                        {% for session in today_sessions %}
+                            <div class="session-item">
+                                <div class="session-info">
+                                    <div class="name">{{ session.get_customer_name }}</div>
+                                    <div class="meta">Máy {{ session.machine.name }} · {{ session.game_name|default:'Không có' }}</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="session-status {{ session.status }}">{{ session.get_status_display }}</div>
+                                    <div class="text-muted small mt-1">
+                                        {% if session.status == 'dang_chay' %}
+                                            {{ session.start_time|date:'H:i' }} → {{ session.expected_end_time|date:'H:i' }}
+                                        {% else %}
+                                            {{ session.start_time|date:'H:i' }}{% if session.end_time %} → {{ session.end_time|date:'H:i' }}{% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fa-regular fa-calendar"></i>
+                        <p class="mb-0">Chưa có phiên hôm nay.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Report -->
+        <div class="col-lg-5">
+            <div class="section-card p-4">
+                <h5 class="mb-3"><i class="fa-solid fa-chart-line me-2 text-brand"></i>Báo cáo nhanh</h5>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="metric-card quick-stat">
+                            <div class="qs-label"><i class="fa-regular fa-circle-check me-1"></i>Đã trả máy</div>
+                            <div class="qs-value">{{ today_count }}</div>
+                            <small class="text-muted">Số phiên kết thúc hôm nay</small>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="metric-card quick-stat">
+                            <div class="qs-label"><i class="fa-regular fa-user me-1"></i>Khách hôm nay</div>
+                            <div class="qs-value">{{ customer_count }}</div>
+                            <small class="text-muted">Tổng khách đã phục vụ</small>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="metric-card quick-stat">
+                            <div class="qs-label"><i class="fa-solid fa-coins me-1 text-brand"></i>Tổng tiền ước tính hôm nay</div>
+                            <div class="qs-value" style="color: var(--brand-dark);">{{ revenue_today|floatformat:0 }}<small style="font-size:0.9rem;font-weight:500;color:var(--text-light);">₫</small></div>
+                            <small class="text-muted">Bao gồm {{ active_sessions }} phiên đang chạy</small>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="metric-card quick-stat">
+                            <div class="qs-label"><i class="fa-solid fa-wallet me-1 text-success"></i>Tổng doanh thu (từ trước tới nay)</div>
+                            <div class="qs-value" style="color: var(--brand-success);">{{ total_revenue|floatformat:0 }}<small style="font-size:0.9rem;font-weight:500;color:var(--text-light);">₫</small></div>
+                            <small class="text-muted">Bao gồm cả phiên đã hoàn thành và phiên đang chạy</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function renderMachineCard(m){
+    const statusMap = {
+        'trong': { label: 'Trống', class: 'status-available' },
+        'dang_dung': { label: 'Đang dùng', class: 'status-active' },
+        'loi': { label: 'Lỗi', class: 'status-error' },
+        'khoa': { label: 'Khóa', class: 'status-locked' },
+    };
+    const info = statusMap[m.status] || { label: m.status, class: 'status-locked' };
+    const imgContent = m.image_url 
+        ? `<img src="${m.image_url}" alt="${m.name}" class="machine-img">`
+        : `<div class="machine-img"><i class="fa-solid fa-display"></i></div>`;
+    return `
+        <div class="machine-tile">
+            ${imgContent}
+            <div class="machine-body">
+                <div class="machine-name">${m.name}</div>
+                <div class="machine-type">${m.type || 'thuong'}</div>
+                <div class="machine-status ${info.class}"><i class="fa-solid fa-circle" style="font-size:0.4rem;"></i> ${info.label}</div>
+                <div class="machine-specs">
+                    <span class="spec-tag"><i class="fa-regular fa-memory me-1"></i>${m.ram_gb} GB</span>
+                    <span class="spec-tag"><i class="fa-regular fa-headphones me-1"></i>${m.has_headset ? 'Có tai nghe' : 'Không'}</span>
+                    <span class="spec-tag"><i class="fa-regular fa-user me-1"></i>${m.has_account ? 'Có Account' : 'Không'}</span>
+                    <span class="spec-tag"><i class="fa-regular fa-clock me-1"></i>${m.hourly_rate.toLocaleString()}₫/h</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function fetchAndRenderMachines(){
+    try {
+        const res = await fetch('{% url "app:api_machines" %}');
+        if (!res.ok) return;
+        const data = await res.json();
+        const grid = document.getElementById('machine-grid');
+        if (grid) grid.innerHTML = data.machines.map(renderMachineCard).join('');
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+    fetchAndRenderMachines();
+    setInterval(fetchAndRenderMachines, 5000);
+});
+</script>
+{% endblock %}
+
