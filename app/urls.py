@@ -14,6 +14,7 @@ urlpatterns = [
     path('machines/add/',                views.machine_add,    name='machine_add'),
     path('machines/<int:machine_id>/',   views.machine_detail, name='machine_detail'),
     path('machines/<int:machine_id>/edit/', views.machine_edit, name='machine_edit'),
+    path('machines/<int:machine_id>/delete/', views.machine_delete, name='machine_delete'),
     path('machines/<int:machine_id>/toggle-lock/', views.machine_toggle_lock, name='machine_toggle_lock'),
     path('api/machines/',                views.api_machines,   name='api_machines'),
     path('api/machines/<int:machine_id>/action/', views.api_machine_action, name='api_machine_action'),

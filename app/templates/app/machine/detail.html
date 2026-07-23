@@ -54,6 +54,10 @@
             <a href="{% url 'app:machine_toggle_lock' machine.id %}" class="btn btn-sm btn-outline-warning">
                 {% if machine.is_locked %}Mở khóa máy{% else %}Khóa máy{% endif %}
             </a>
+            <form method="post" action="{% url 'app:machine_delete' machine.id %}" class="d-inline" onsubmit="return confirm('Xóa {{ machine.name }}? Thao tác này không thể hoàn tác.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger ms-2">Xóa máy</button>
+            </form>
         </div>
     </div>
 

@@ -172,6 +172,23 @@ def machine_edit(request, machine_id):
     })
 
 
+@require_POST
+@role_required(['owner', 'staff', 'tech'])
+def machine_delete(request, machine_id):
+    machine = get_object_or_404(Machine, id=machine_id)
+    if Session.objects.filter(machine=machine).exists():
+        messages.error(
+            request,
+            f'Không thể xóa {machine.name} vì máy đã có lịch sử phiên. Hãy khóa máy thay vì xóa.'
+        )
+        return redirect('app:machine_detail', machine_id=machine.id)
+
+    name = machine.name
+    machine.delete()
+    messages.success(request, f'Đã xóa máy {name}.')
+    return redirect('app:machine_list')
+
+
 @role_required(['owner', 'staff', 'tech'])
 def machine_toggle_lock(request, machine_id):
     machine = get_object_or_404(Machine, id=machine_id)
