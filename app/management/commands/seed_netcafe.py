@@ -33,13 +33,9 @@ class Command(BaseCommand):
                     "note": note,
                 },
             )
-            if not machine.image:
-                image_name = "machine_images/pc1.jpg"
-                if machine_type == "gaming":
-                    image_name = "machine_images/pcpc.jpg"
-                elif machine_type == "vip":
-                    image_name = "machine_images/tv360.png"
-                machine.image = image_name
+            if machine.image:
+                # Machine thumbnails are shipped as static files so they work on Render.
+                machine.image = ""
                 machine.save(update_fields=["image"])
             created_machines += created
 

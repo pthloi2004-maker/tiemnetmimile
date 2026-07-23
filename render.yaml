@@ -7,7 +7,5 @@ services:
     envVars:
       - key: DJANGO_DEBUG
         value: "False"
-      - key: DJANGO_MEDIA_URL
-        value: "/static/"
       - key: DJANGO_SECRET_KEY
         generateValue: true
