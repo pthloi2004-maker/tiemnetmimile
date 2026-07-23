@@ -568,13 +568,22 @@ function renderMachineCard(m){
         'khoa': { label: 'Khóa', class: 'status-locked' },
     };
     const info = statusMap[m.status] || { label: m.status, class: 'status-locked' };
-    const fallbackImages = {
-        thuong: '{% static "app/images/machines/standard.jpg" %}',
-        gaming: '{% static "app/images/machines/gaming.jpg" %}',
-        vip: '{% static "app/images/machines/vip.jpg" %}',
+    const originalMachineImages = {
+        PC01: '{% static "machine_images/pc.jpg" %}',
+        PC02: '{% static "machine_images/pc1.jpg" %}',
+        PC03: '{% static "machine_images/pc10.jpg.jpg" %}',
+        PC04: '{% static "machine_images/pc7.jpg" %}',
+        PC05: '{% static "machine_images/pc8.jpg" %}',
+        PC06: '{% static "machine_images/pcpc.jpg" %}',
+        PC07: '{% static "machine_images/pc9.jpg" %}',
+        PC08: '{% static "machine_images/pc11.jpg" %}',
+        PC09: '{% static "machine_images/pc12.jpg" %}',
+        PC10: '{% static "machine_images/tv360.png" %}',
     };
-    const imageUrl = m.image_url || fallbackImages[m.type] || fallbackImages.thuong;
-    const imgContent = `<img src="${imageUrl}" alt="${m.name}" class="machine-img">`;
+    const imageUrl = m.image_url || originalMachineImages[m.name];
+    const imgContent = imageUrl
+        ? `<img src="${imageUrl}" alt="${m.name}" class="machine-img">`
+        : `<div class="machine-img"><i class="fa-solid fa-display"></i></div>`;
     return `
         <div class="machine-tile">
             ${imgContent}
