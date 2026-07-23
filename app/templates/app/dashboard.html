@@ -568,9 +568,13 @@ function renderMachineCard(m){
         'khoa': { label: 'Khóa', class: 'status-locked' },
     };
     const info = statusMap[m.status] || { label: m.status, class: 'status-locked' };
-    const imgContent = m.image_url 
-        ? `<img src="${m.image_url}" alt="${m.name}" class="machine-img">`
-        : `<div class="machine-img"><i class="fa-solid fa-display"></i></div>`;
+    const fallbackImages = {
+        thuong: '{% static "app/images/machines/standard.jpg" %}',
+        gaming: '{% static "app/images/machines/gaming.jpg" %}',
+        vip: '{% static "app/images/machines/vip.jpg" %}',
+    };
+    const imageUrl = m.image_url || fallbackImages[m.type] || fallbackImages.thuong;
+    const imgContent = `<img src="${imageUrl}" alt="${m.name}" class="machine-img">`;
     return `
         <div class="machine-tile">
             ${imgContent}
@@ -607,4 +611,3 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 {% endblock %}
-
