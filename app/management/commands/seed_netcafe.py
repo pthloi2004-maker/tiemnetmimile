@@ -1,3 +1,6 @@
+import os
+
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
 from app.models import Machine, Service
@@ -54,6 +57,27 @@ class Command(BaseCommand):
                 defaults={"category": category, "price": price, "stock": stock, "available": True},
             )
             created_services += created
+
+        username = os.environ.get("INITIAL_ADMIN_USERNAME")
+        password = os.environ.get("INITIAL_ADMIN_PASSWORD")
+        if username and password:
+            user_model = get_user_model()
+            user, created = user_model.objects.get_or_create(
+                username=username,
+                defaults={"is_staff": True, "is_superuser": True},
+            )
+            if created:
+                user.set_password(password)
+                user.is_staff = True
+                user.is_superuser = True
+                user.save()
+                self.stdout.write(self.style.SUCCESS(f"Created admin user: {username}"))
+            else:
+                user.set_password(password)
+                user.is_staff = True
+                user.is_superuser = True
+                user.save(update_fields=["password", "is_staff", "is_superuser"])
+                self.stdout.write(self.style.SUCCESS(f"Updated admin user: {username}"))
 
         self.stdout.write(self.style.SUCCESS(
             f"Net-cafe seed complete: {created_machines} machine(s), {created_services} service(s) created."

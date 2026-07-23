@@ -41,13 +41,7 @@
                                 {% if machine.image %}
                                 <img src="{{ machine.image.url }}" alt="{{ machine.name }}" class="rounded" style="width: 80px; height: 60px; object-fit: cover;">
                                 {% else %}
-                                {% if machine.machine_type == 'vip' %}
-                                <img src="{% static 'app/images/machines/vip.jpg' %}" alt="{{ machine.name }}" class="rounded" style="width: 80px; height: 60px; object-fit: cover;">
-                                {% elif machine.machine_type == 'gaming' %}
-                                <img src="{% static 'app/images/machines/gaming.jpg' %}" alt="{{ machine.name }}" class="rounded" style="width: 80px; height: 60px; object-fit: cover;">
-                                {% else %}
-                                <img src="{% static 'app/images/machines/standard.jpg' %}" alt="{{ machine.name }}" class="rounded" style="width: 80px; height: 60px; object-fit: cover;">
-                                {% endif %}
+                                <img src="{% static machine.fallback_image_path %}" alt="{{ machine.name }}" class="rounded" style="width: 80px; height: 60px; object-fit: cover;">
                                 {% endif %}
                             </td>
                             <td>{{ machine.name }}</td>

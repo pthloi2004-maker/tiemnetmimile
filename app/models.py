@@ -47,6 +47,22 @@ class Machine(models.Model):
     def __str__(self):
         return f'{self.name} ({self.get_machine_type_display()})'
 
+    @property
+    def fallback_image_path(self):
+        """Original machine photos bundled with the project for Render deployments."""
+        return {
+            'PC01': 'machine_images/pc.jpg',
+            'PC02': 'machine_images/pc1.jpg',
+            'PC03': 'machine_images/pc10.jpg.jpg',
+            'PC04': 'machine_images/pc7.jpg',
+            'PC05': 'machine_images/pc8.jpg',
+            'PC06': 'machine_images/pcpc.jpg',
+            'PC07': 'machine_images/pc9.jpg',
+            'PC08': 'machine_images/pc11.jpg',
+            'PC09': 'machine_images/pc12.jpg',
+            'PC10': 'machine_images/tv360.png',
+        }.get(self.name, 'machine_images/pc.jpg')
+
     def is_available(self):
         return self.status == 'trong'
 
